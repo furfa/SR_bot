@@ -23,7 +23,8 @@ async def partnership_support_info(query: types.CallbackQuery, state: FSMContext
 
 
 async def faq_info(query: types.CallbackQuery, state: FSMContext):
-    await query.message.edit_text(templates.FAQ_MESSAGE, reply_markup=SupportKeyboardInline.faq_menu())
+    await query.message.delete() # Костыль, чтобы на айфоне кнопки не блокировались. В идеале делать edit text.
+    await query.message.answer(templates.FAQ_MESSAGE, reply_markup=SupportKeyboardInline.faq_menu())
 
 
 async def faq_display_question_answer(query: types.CallbackQuery, state: FSMContext, callback_data: dict):
