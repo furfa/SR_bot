@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:14
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    restart: always
+
+  redis:
+    image: redis:6-alpine
+    restart: always
+
+  backend: &backend_base_config
+    build: ./backend
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+    environment:
+      DEBUG : "True"
+      CELERY_BROKER : redis://redis:6379/0
+      CELERY_BACKEND : redis://redis:6379/0
+    #command: gunicorn --bind 0.0.0.0:8000 config.wsgi
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    restart: always
+
+  celery:
+    <<: *backend_base_config
+    #command: celery --app=config worker -B --max-tasks-per-child 1 --loglevel=info --logfile=logs/celery.log
+    command: watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- celery --app=config worker -B --max-tasks-per-child 1 --loglevel=info --logfile=logs/celery.log
+    ports: []
+
+  bot:
+    build: ./bot
+    command: bash -c "watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- python app.py"
+    volumes:
+      - ./bot:/app
+    environment:
+      BOT_TOKEN: "5062739090:AAEwkEtk3l0u2CeLmeDQaIxHRfk434_FpPA"
+      BACKEND_URL: "backend:8000"

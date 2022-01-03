@@ -1,0 +1,6 @@
+aiogram
+aiohttp
+loguru
+pydantic
+pyyaml
+watchdog==2.1.6
