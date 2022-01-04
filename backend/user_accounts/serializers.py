@@ -23,6 +23,22 @@ class BotUserSerializer(serializers.ModelSerializer):
         )
 
 
+class GirlFormSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.GirlForm
+        fields = (
+            "id",
+            "country",
+            "city",
+            "first_name",
+            "age",
+            "height",
+            "weight",
+            "body_params",
+            "nationality",
+        )
+
+
 class UserSupportQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.UserSupportQuestion

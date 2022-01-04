@@ -1,4 +1,6 @@
 import logging
+
+from django.db.models import Q
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -64,3 +66,20 @@ class UserSupportQuestionViewset(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(status=models.UserSupportQuestion.StatusChoices.ANSWERED)
+
+
+class GirlFormViewset(
+        mixins.RetrieveModelMixin,
+        mixins.UpdateModelMixin,
+        mixins.ListModelMixin,
+        viewsets.GenericViewSet
+    ):
+    queryset = models.GirlForm.objects.all()
+    serializer_class = serializers.GirlFormSerializer
+
+    def get_object(self):
+        user = models.BotUser.objects.get(pk=self.kwargs["pk"])
+        form = user.girl_profile.forms.filter(
+            ~Q(status=models.GirlForm.StatusChoices.DELETED)
+        ).first()
+        return form

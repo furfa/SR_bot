@@ -7,3 +7,14 @@ from celery import current_app
 from . import models
 
 logger = logging.getLogger(__name__)
+
+
+@receiver(post_save, sender=models.BotUser, dispatch_uid="change sex")
+def on_post_save_user(sender, **kwargs):
+    instance = kwargs['instance']
+    logger.info(f"user saved {instance}")
+    if instance.sex == models.BotUser.SexChoices.GIRL and not hasattr(instance, 'girl_profile'):
+        models.GirlProfile.objects.create(user=instance)
+
+    if instance.sex == models.BotUser.SexChoices.MALE and hasattr(instance, 'girl_profile'):
+        instance.girl_profile.delete()

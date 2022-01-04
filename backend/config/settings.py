@@ -54,6 +54,7 @@ INSTALLED_APPS = [
 
     'user_accounts.apps.UserAccountsConfig',
     'event_bus',
+    'location',
 ]
 
 MIDDLEWARE = [

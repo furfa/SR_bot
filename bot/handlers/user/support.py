@@ -14,7 +14,8 @@ async def support_start(msg: types.Message):
     await msg.answer(templates.SUPPORT_START, reply_markup=SupportKeyboardInline.menu())
 
 
-async def back_to_support(query: types.CallbackQuery):
+async def back_to_support(query: types.CallbackQuery, state: FSMContext):
+    await state.finish()
     await query.message.edit_text(templates.SUPPORT_START, reply_markup=SupportKeyboardInline.menu())
 
 

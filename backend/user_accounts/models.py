@@ -7,6 +7,7 @@ from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 
 from base.classes import DjangoModelAutoStr
+from location.models import Country, City
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +40,54 @@ class BotUser(DjangoModelAutoStr, models.Model):
         related_name="referrals",
         on_delete=models.SET_NULL,
         null=True,
-        default=None
+        default=None,
+        blank=True
     )
 
     class Meta:
         verbose_name = 'Пользователя сервиса'
         verbose_name_plural = 'Пользователи сервиса'
+
+
+class AbstractProfile(models.Model):
+    has_vip_status = models.BooleanField(default=False, verbose_name="Есть вип статус")
+
+    class Meta:
+        abstract = True
+
+
+class GirlProfile(DjangoModelAutoStr, AbstractProfile):
+    has_top_status = models.BooleanField(default=False, verbose_name="Есть топ статус")
+    user = models.OneToOneField(BotUser, related_name="girl_profile", null=True, blank=True, on_delete=models.CASCADE)
+
+
+class GirlForm(DjangoModelAutoStr, models.Model):
+    profile = models.ForeignKey(GirlProfile, on_delete=models.SET_NULL, null=True, related_name="forms")
+
+    class StatusChoices(models.TextChoices):
+        CREATED   = "CREATED", "Создан"
+        FILLED    = "FILLED", "Заполнен"
+        CONFIRMED = "CONFIRMED", "Подтвержден"
+        REJECTED  = "REJECTED", "Отклонен"
+        DELETED   = "DELETED", "Удален"
+
+    status = models.CharField(max_length=32, choices=StatusChoices.choices, default=StatusChoices.CREATED)
+
+    country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, related_name="countries", blank=True)
+    city = models.ForeignKey(City, on_delete=models.SET_NULL, null=True, blank=True)
+
+    first_name = models.CharField(max_length=64, default=None, null=True, blank=True)
+    age = models.PositiveIntegerField(null=True, blank=True)
+    height = models.PositiveIntegerField(null=True, blank=True)
+    weight = models.PositiveIntegerField(null=True, blank=True)
+    body_params = models.CharField(max_length=64, null=True, blank=True)
+    nationality = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, related_name="nationalities", blank=True)
+
+
+class GirlFormPhoto(DjangoModelAutoStr, models.Model):
+    is_approve = models.BooleanField(default=False, verbose_name="Для подтверждения")
+    photo = models.ImageField(upload_to="girl_photo/", verbose_name="Фото")
+    form = models.ForeignKey(GirlForm, on_delete=models.CASCADE, verbose_name="Форма", related_name="photos")
 
 
 class UserSupportQuestion(DjangoModelAutoStr, models.Model):
@@ -65,10 +108,10 @@ class UserSupportQuestion(DjangoModelAutoStr, models.Model):
     )
 
     class TypeChoices(models.TextChoices):
-        CLIENT            = "CLIENT", "Клиентская"
-        TECHNICAL         = "TECHNICAL", "Техническая"
-        PERSONAL_MANAGER  = "PERSONAL_MANAGER", "Персональный менеджер"
-        PARTNERSHIP       = "PARTNERSHIP", "Сотрудничество"
+        CLIENT           = "CLIENT", "Клиентская"
+        TECHNICAL        = "TECHNICAL", "Техническая"
+        PERSONAL_MANAGER = "PERSONAL_MANAGER", "Персональный менеджер"
+        PARTNERSHIP      = "PARTNERSHIP", "Сотрудничество"
 
     type = models.CharField(
         verbose_name="Тип",
