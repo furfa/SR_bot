@@ -34,8 +34,8 @@ async def on_startup(dp):
 @logger.catch()
 async def main():
     setup_loguru()
-    # logger.remove()
-    # logger.add(sys.stderr, level="INFO")
+    logger.remove()
+    logger.add(sys.stderr, level="INFO")
     await on_startup(dp)
 
     asyncio.create_task(eventbus_listener.start_pooling())
