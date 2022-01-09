@@ -1,11 +1,13 @@
 from aiogram import Dispatcher
 from aiogram.dispatcher.filters import CommandStart, CommandHelp
+from aiogram.types import ContentTypes
 
 import states.user.start
+from keyboards.inline.account import AccountInline
 from keyboards.inline.support import SupportKeyboardInline
 from templates.user.start import BACK_BUTTON
 from templates.user.support import BACK_TO_SUPPORT
-from . import support, start, help
+from . import support, start, help, account
 
 
 def setup(dp: Dispatcher):
@@ -45,3 +47,21 @@ def setup(dp: Dispatcher):
     ):
         dp.register_message_handler(support.question_handler, state=state)
 
+    # account.py
+    dp.register_message_handler(account.account_menu, text=['👤 Мой аккаунт'])
+    dp.register_callback_query_handler(account.top_up_balance_menu,
+                                       AccountInline.account_callback_data.filter(action="top_up_balance"), state="*")
+    dp.register_callback_query_handler(account.account_menu_query,
+                                       AccountInline.back_menu.filter(target="menu"), state="*")
+
+    dp.register_callback_query_handler(account.top_up_selected_amount,
+                                       AccountInline.top_up_balance_callback_data.filter(), state="*")
+    dp.register_message_handler(account.top_up_custom_amount,
+                                state=states.user.account.AccountStates.enter_custom_amount)
+
+    dp.register_callback_query_handler(account.screenshot_payment,
+                                       AccountInline.screenshot_payment.filter(), state="*")
+
+    dp.register_message_handler(account.screenshot_payment_get_screenshot,
+                                content_types=['text', 'photo', 'video'],
+                                state=states.user.account.AccountStates.wait_screenshot)

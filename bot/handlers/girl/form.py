@@ -1,5 +1,7 @@
+import aiogram
 from aiogram import types, Bot, Dispatcher
 from aiogram.dispatcher import FSMContext
+from aiogram import exceptions
 from aiogram.utils.callback_data import CallbackData
 from loguru import logger
 
@@ -39,7 +41,7 @@ class GirlFormKeyboard(InlineConstructor):
     @staticmethod
     def checkbox_choices(choices, selected_choices, question_num):
         actions = [
-            *[{'text': choice+" "+("✅" if index in selected_choices else "❌"), 'callback_data': (
+            *[{'text': choice + " " + ("✅" if index in selected_choices else "❌"), 'callback_data': (
                 {
                     'question_num': question_num,
                     'option_num': index
@@ -47,7 +49,8 @@ class GirlFormKeyboard(InlineConstructor):
                 GirlFormKeyboard.checkbox_choices_callback_data
             )}
               for index, choice in enumerate(choices)],
-            {'text': 'Сохранить ✏️', 'callback_data': ({'question_num': question_num, 'option_num': "save"}, GirlFormKeyboard.checkbox_choices_callback_data)},
+            {'text': 'Сохранить ✏️', 'callback_data': (
+            {'question_num': question_num, 'option_num': "save"}, GirlFormKeyboard.checkbox_choices_callback_data)},
             {'text': 'Назад', 'callback_data': ({}, GirlFormKeyboard.back_callback_data)}
         ]
         schema = [1] * len(actions)
@@ -131,8 +134,10 @@ class GirlForm:
             return
 
         await query.message.edit_text(query.message.text)
-        await query.message.answer(f"👉 {choice}")
-
+        if self.question_handlers[question_num]["type"] == "yes_no":
+            await query.message.answer(f"👉 {'Да' if choice else 'Нет'}")
+        else:
+            await query.message.answer(f"👉 {choice}")
         await self.send_question(query.message, state)
 
     async def checkbox_choices_query_handler(self, query: types.CallbackQuery, state: FSMContext, callback_data: dict):
@@ -147,9 +152,11 @@ class GirlForm:
 
             if callback_data["option_num"] == "save":
                 question_text = self.question_handlers[question_num]["text"]
-                res_str = "\n".join("🔹 "+self.question_handlers[question_num]["choices"][choice_index] for choice_index in data["selected_choices"][question_num])
-                await query.message.edit_text(question_text+"\n\n<b>Выбрано:</b> \n"+res_str)
-                await query.message.answer("Сохраняю")
+                res_str = "\n".join(
+                    "🔹 " + self.question_handlers[question_num]["choices"][choice_index] for choice_index in
+                    data["selected_choices"][question_num])
+                await query.message.delete()
+                await query.message.answer(question_text + "\n\n<b>Выбрано:</b> \n" + res_str)
                 await self.send_question(query.message, state)
                 return
 
@@ -188,8 +195,23 @@ class GirlForm:
             logger.info(f"{dict(data)= } {msg=}")
             question_number = data.get('question_number', -100)
 
-            if question_number >= 0 and not await self.validate_answer(msg.text, question_number):
-                await msg.answer("Неверный формат, введите еще раз", reply_markup=GirlFormKeyboard.back())
+            if (
+                    question_number >= 0 and
+                    self.question_handlers[question_number]["type"] != "text_input"
+            ):
+                await msg.answer("⛔ Неверный формат, введите еще раз")
+                return
+
+            if (
+                    question_number >= 0 and
+                    not await self.validate_answer(msg.text, question_number)
+            ):
+                if pqm := data.get("prev_question_message"):
+                    await pqm.edit_text("<b>⛔️ Неверный формат, введите еще раз</b>\n" + pqm.text,
+                                        reply_markup=GirlFormKeyboard.back())
+                    await msg.delete()
+                else:
+                    await msg.answer("⛔️ Неверный формат, введите еще раз", reply_markup=GirlFormKeyboard.back())
                 return
 
         await self.send_question(msg, state)
@@ -202,9 +224,11 @@ class GirlForm:
                 data['question_number'] = 0
                 await GirlFormStates.entered.set()
             question_number = data['question_number']
-
-            if pqm := data.get("prev_question_message"):
-                await pqm.edit_text(pqm.text)  # delete inline buttons
+            try:
+                if pqm := data.get("prev_question_message"):
+                    await pqm.edit_text(pqm.text)  # delete inline buttons
+            except (exceptions.MessageNotModified, exceptions.MessageToEditNotFound) as e:
+                logger.error("error while deleting markup")
 
         if question_number >= len(self.question_handlers):
             await state.finish()
@@ -217,27 +241,29 @@ class GirlForm:
     async def send_question_message(self, msg: types.Message, state: FSMContext, question_number: int):
         async with state.proxy() as data:
             handler = self.question_handlers[question_number]
+            print(handler)
 
             if handler["type"] == "text_input":
-                await msg.answer(handler["text"], reply_markup=GirlFormKeyboard.back())
+                return await msg.answer(handler["text"], reply_markup=GirlFormKeyboard.back())
 
             if handler["type"] == "button_choices":
-                await msg.answer(handler["text"],
-                                 reply_markup=GirlFormKeyboard.button_choices(handler["choices"], question_number))
+                return await msg.answer(handler["text"],
+                                        reply_markup=GirlFormKeyboard.button_choices(handler["choices"],
+                                                                                     question_number))
 
             if handler["type"] == "multicheckbox":
-                await msg.answer(handler["text"],
-                                 reply_markup=GirlFormKeyboard.checkbox_choices(
-                                     handler["choices"],
-                                     data.get("selected_choices", {}).get(question_number, []),
-                                     question_number))
+                return await msg.answer(handler["text"],
+                                        reply_markup=GirlFormKeyboard.checkbox_choices(
+                                            handler["choices"],
+                                            data.get("selected_choices", {}).get(question_number, []),
+                                            question_number))
 
             if handler["type"] == "yes_no":
-                await msg.answer(handler["text"],
-                                 reply_markup=GirlFormKeyboard.button_choices(
-                                    ["✅ Да", "❌ Нет"],
-                                    question_number
-                                 ))
+                return await msg.answer(handler["text"],
+                                        reply_markup=GirlFormKeyboard.button_choices(
+                                            ["✅ Да", "❌ Нет"],
+                                            question_number
+                                        ))
 
     async def validate_answer(self, text: str, question_number: int):
         handler = self.question_handlers[question_number]
