@@ -24,19 +24,21 @@ class BotUserSerializer(serializers.ModelSerializer):
 
 
 class GirlFormSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
     class Meta:
         model = models.GirlForm
         fields = (
             "id",
             "country",
             "city",
-            "first_name",
-            "age",
-            "height",
-            "weight",
-            "body_params",
             "nationality",
+            "additional_data",
+            "user"
         )
+
+    def get_user(self, obj):
+        return obj.profile.user.id
 
 
 class UserSupportQuestionSerializer(serializers.ModelSerializer):

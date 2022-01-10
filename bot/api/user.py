@@ -39,6 +39,11 @@ class BackendUser(BaseModel):
         b_user = await BackendUser.get()
         return b_user.is_admin
 
+    @staticmethod
+    async def update_last_usage():
+        tg_user = types.User.get_current()
+        return await get_instance(BackendUser, 'patch', path=f'users/{tg_user.id}/update_last_usage', json={})
+
 
 class UserSupportQuestion(BaseModel):
     id: int

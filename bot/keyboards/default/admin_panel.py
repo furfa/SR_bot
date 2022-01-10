@@ -8,6 +8,7 @@ class AdminMenuKeyboard(DefaultConstructor):
 
         actions = [
             "Тех. Поддержка",
+            "Пополнения",
             BACK_BUTTON
         ]
         schema = [1] * len(actions)

@@ -4,6 +4,7 @@ from io import BytesIO
 from aiogram import types, Bot
 from aiogram.dispatcher import FSMContext
 
+from api.payment import Payment
 from api.user import BackendUser
 from keyboards.inline.account import AccountInline
 from states.user.account import AccountStates
@@ -99,10 +100,9 @@ async def screenshot_payment_get_screenshot(msg: types.Message, state: FSMContex
         downloaded = await bot.download_file_by_id(msg.photo[-1].file_id)
         b = BytesIO()
         b.write(downloaded.getvalue())
-        with open('testfile.jpg', 'wb') as f:
-            f.write(b.getvalue())
         b.seek(0)
-        await bot.send_photo(msg.chat.id, b)
+        await Payment.create(screenshot=b, amount=data.get("screenshot_amount", 0))
+        await bot.send_message(msg.chat.id, "Принято 👌. Ожидайте подтверждения от администраторов")
 
         if screenshot_ask_message := data.get("screenshot_ask_message"):
             await screenshot_ask_message.edit_text(screenshot_ask_message.text)

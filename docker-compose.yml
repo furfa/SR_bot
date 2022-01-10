@@ -40,9 +40,12 @@ services:
 
   bot:
     build: ./bot
-    command: bash -c "watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- python app.py"
+    command: bash -c "sleep 5 && watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- python app.py"
+    depends_on:
+      - backend
     volumes:
       - ./bot:/app
     environment:
       BOT_TOKEN: "5062739090:AAEwkEtk3l0u2CeLmeDQaIxHRfk434_FpPA"
       BACKEND_URL: "backend:8000"
+    restart: always

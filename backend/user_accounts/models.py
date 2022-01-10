@@ -76,12 +76,8 @@ class GirlForm(DjangoModelAutoStr, models.Model):
     country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, related_name="countries", blank=True)
     city = models.ForeignKey(City, on_delete=models.SET_NULL, null=True, blank=True)
 
-    first_name = models.CharField(max_length=64, default=None, null=True, blank=True)
-    age = models.PositiveIntegerField(null=True, blank=True)
-    height = models.PositiveIntegerField(null=True, blank=True)
-    weight = models.PositiveIntegerField(null=True, blank=True)
-    body_params = models.CharField(max_length=64, null=True, blank=True)
     nationality = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, related_name="nationalities", blank=True)
+    additional_data = models.JSONField(verbose_name="Дополнительные данные", default={})
 
 
 class GirlFormPhoto(DjangoModelAutoStr, models.Model):

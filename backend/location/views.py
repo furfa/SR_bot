@@ -1,3 +1,9 @@
 from django.shortcuts import render
+from rest_framework import viewsets
 
-# Create your views here.
+from . import serializers, models
+
+
+class CountyViewset(viewsets.ModelViewSet):
+    serializer_class = serializers.CountrySerializer
+    queryset = models.Country.objects.all()

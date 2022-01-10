@@ -3,11 +3,14 @@ from aiogram.dispatcher import FSMContext
 from loguru import logger
 from contextlib import suppress
 
+import api.base
+from api.payment import Payment
 from api.user import BackendUser, UserSupportQuestion
 from keyboards.default.admin_panel import AdminMenuKeyboard
 from keyboards.inline.admin_panel import AdminQuestionInline
 from states.admin.admin_panel import AdminPanelStates
 from templates.admin.admin_panel import SUPPORT_QUESTION_TEMPLATE, NO_SUPPORT_QUESTIONS
+from templates.user.account import NO_SCREENSHOTS
 from templates.user.support import QUESTION_ANSWERED
 
 
@@ -71,3 +74,40 @@ async def answer_handler(msg: types.Message, state: FSMContext = None):
 
     await msg.answer("Записано👌")
     await AdminPanelStates.support_admin.set()
+
+
+async def payment_admin(msg: types.Message):
+    if not await BackendUser.check_is_admin():
+        return
+
+    payments = await Payment.list(status="CREATED")
+
+    if not payments:
+        await msg.answer(
+            NO_SCREENSHOTS
+        )
+        return
+
+    for payment in payments:
+        image = await api.base.get_image(payment.screenshot)
+        text = (
+            f"id: {payment.id}\n"
+            f"пользователь: {payment.user}\n"
+            f"статус: {payment.status}\n"
+            f"сумма: <b>{payment.amount}</b>"
+        )
+        await msg.answer_photo(image, caption=text, reply_markup=AdminQuestionInline.approve_screenshot(payment.id))
+
+
+async def payment_action(query: types.CallbackQuery, callback_data: dict):
+    if not await BackendUser.check_is_admin():
+        return
+
+    if callback_data["type"] == "approve":
+        backend_status = "APPROVED"
+    else:
+        backend_status = "REJECTED"
+
+    await Payment.update(callback_data["id"], status=backend_status)
+    await query.message.delete()
+

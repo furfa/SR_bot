@@ -28,7 +28,7 @@ async def on_startup(dp):
     handlers.errors.setup(dp)
     handlers.user.setup(dp)
     handlers.admin.setup(dp)
-    handlers.girl.setup(dp)
+    await handlers.girl.setup(dp)
 
 
 @logger.catch()
