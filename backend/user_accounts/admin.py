@@ -14,7 +14,14 @@ from . import models
 
 @admin.register(models.BotUser)
 class BotUserAdmin(admin.ModelAdmin):
-    pass
+    list_display = (
+        "id",
+        "has_access",
+        "is_admin",
+        "sex",
+        "last_usage_at",
+        "balance"
+    )
 
 
 @admin.register(models.GirlProfile)

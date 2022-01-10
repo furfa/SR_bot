@@ -28,8 +28,6 @@ DEBUG = ("true" in os.environ['DEBUG'].lower())
 APPEND_SLASH = False
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://honeymoonforever.vn.ua",
-    "https://sashkamyachin.xyz"
 ]
 ALLOWED_HOSTS = ['*'] + CSRF_TRUSTED_ORIGINS
 
@@ -55,6 +53,7 @@ INSTALLED_APPS = [
     'user_accounts.apps.UserAccountsConfig',
     'event_bus',
     'location',
+    'payment'
 ]
 
 MIDDLEWARE = [
