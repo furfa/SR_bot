@@ -18,3 +18,10 @@ def on_post_save_user(sender, **kwargs):
 
     if instance.sex == models.BotUser.SexChoices.MALE and hasattr(instance, 'girl_profile'):
         instance.girl_profile.delete()
+
+
+# @receiver(post_save, sender=models.GirlProfile, dispatch_uid="auto_create_first_form")
+# def on_post_save_girl_profile(sender, **kwargs):
+#     instance = kwargs['instance']
+#     models.GirlForm.objects.create(profile=instance)
+

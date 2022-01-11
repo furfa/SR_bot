@@ -64,13 +64,7 @@ async def answer_question(query: types.CallbackQuery, callback_data: dict):
 
 async def answer_handler(msg: types.Message, state: FSMContext = None):
     async with state.proxy() as data:
-        changed = await UserSupportQuestion.update(id_=data['id'], answer_body=msg.text)
-
-        bot = Bot.get_current()
-        await bot.send_message(
-            changed.user,
-            QUESTION_ANSWERED.format(question=changed.question_body, answer=changed.answer_body)
-        )
+        await UserSupportQuestion.update(id_=data['id'], answer_body=msg.text)
 
     await msg.answer("Записано👌")
     await AdminPanelStates.support_admin.set()
@@ -111,3 +105,69 @@ async def payment_action(query: types.CallbackQuery, callback_data: dict):
     await Payment.update(callback_data["id"], status=backend_status)
     await query.message.delete()
 
+
+async def send_to_user(msg: types.Message):
+    if not await BackendUser.check_is_admin():
+        return
+    try:
+        text = msg.text
+        text = text.removeprefix("/send").strip()
+        user_id, message_text = text.split(" ", 1)
+
+        bot = Bot.get_current()
+
+        await bot.send_message(user_id, message_text)
+        await msg.answer("Отправлено")
+
+    except Exception:
+        await msg.answer("Неверный формат или пользователь не найден")
+
+
+async def add_balance_to_user(msg: types.Message):
+    if not await BackendUser.check_is_admin():
+        return
+    try:
+        text = msg.text
+        text = text.removeprefix("/add_balance").strip()
+        user_id, amount = text.split(" ", 1)
+        amount = float(amount)
+        be = await BackendUser.get(tg_user_id=user_id)
+
+        await BackendUser.update(tg_user_id=user_id, balance=be.balance+amount)
+
+        await msg.answer("Баланс пополнен")
+
+    except Exception:
+        await msg.answer("Неверный формат или пользователь не найден")
+
+
+async def ban_user(msg: types.Message):
+    if not await BackendUser.check_is_admin():
+        return
+    try:
+        text = msg.text
+        text = text.removeprefix("/ban").strip()
+        user_id = text
+        be = await BackendUser.get(tg_user_id=user_id)
+        await BackendUser.update(tg_user_id=user_id, has_access = not be.has_access)
+        await msg.answer(f"Пользователь {user_id} {'разбанен' if not be.has_access else 'забанен'}")
+
+    except Exception:
+        await msg.answer("Неверный формат или пользователь не найден")
+
+
+async def list_users(msg: types.Message):
+    if not await BackendUser.check_is_admin():
+        return
+    text = ""
+    for user in await BackendUser.list():
+        user_text = (
+            f"<b>id:</b> {user.id}\n"
+            f"<b>пол:</b> {user.sex}\n"
+            f"<b>баланс:</b> {user.balance}\n"
+            f"<b>есть доступ:</b> {'Да' if user.has_access else 'Нет'}\n"
+        )
+        text += user_text
+        text += "\n"
+
+    await msg.answer(text)

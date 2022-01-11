@@ -11,7 +11,7 @@ from loguru import logger
 from api.base import request
 import api.girl_form
 from keyboards.inline.consts import InlineConstructor
-from states.girl.form import GirlFormStates
+from states.girl.form import GirlFormStates, GirlFormNameStates, GirlFormPriceStates
 
 
 class GirlFormKeyboard(InlineConstructor):
@@ -64,29 +64,31 @@ class GirlFormKeyboard(InlineConstructor):
 
 class GirlFormBase:
 
-    def __init__(self):
+    def __init__(self, enter_state, need_approve):
+        self.enter_state = enter_state
+        self.need_approve = need_approve
         self.question_handlers = {}
 
     def register_internal_handlers(self, dp: Dispatcher):
         # Во время опроса
-        dp.register_message_handler(self.message_handler, state=GirlFormStates.entered)
+        dp.register_message_handler(self.message_handler, state=self.enter_state)
         # Кнопка назад
         dp.register_callback_query_handler(
             self.back_query_handler,
             GirlFormKeyboard.back_callback_data.filter(),
-            state=GirlFormStates.entered
+            state=self.enter_state
         )
         # Callbacks от кнопок с выбором
         dp.register_callback_query_handler(
             self.button_choices_query_handler,
             GirlFormKeyboard.button_choices_callback_data.filter(),
-            state=GirlFormStates.entered
+            state=self.enter_state
         )
         # Callbacks от кнопок с чекбоксом
         dp.register_callback_query_handler(
             self.checkbox_choices_query_handler,
             GirlFormKeyboard.checkbox_choices_callback_data.filter(),
-            state=GirlFormStates.entered
+            state=self.enter_state
         )
 
     def get_start_node(self):
@@ -174,6 +176,16 @@ class GirlFormBase:
 
         await self.send_question(query.message, state)
 
+    async def enter_inline(self, query: types.CallbackQuery, state: FSMContext):
+        await query.message.delete()
+        # try:
+        #     await api.girl_form.GirlForm.get()
+        # except ValueError:
+        if self.need_approve:
+            await api.girl_form.GirlForm.create()
+
+        await self.message_handler(query.message, state)
+
     async def message_handler(self, msg: types.Message, state: FSMContext):
         async with state.proxy() as data:
             logger.info(f"{dict(data)= } {msg=}")
@@ -203,7 +215,7 @@ class GirlFormBase:
                     data['question_number'] = self.question_handlers[data['question_number']]["next"]
                 else:
                     data['question_number'] = self.get_start_node()
-                    await GirlFormStates.entered.set()
+                    await self.enter_state.set()
 
             question_number = data['question_number']
             try:
@@ -215,6 +227,8 @@ class GirlFormBase:
         if question_number == "EXIT":
             await state.finish()
             await msg.answer("Анкета заполнена ✅")
+            if self.need_approve:
+                await api.girl_form.GirlForm.set_filled()
             return
 
         async with state.proxy() as data:
@@ -256,10 +270,92 @@ class GirlFormBase:
             await handler["processor"](msg, choice)
 
 
+class GirlChangeName(GirlFormBase):
+    @classmethod
+    async def create(cls):
+        self = GirlForm(enter_state=GirlFormNameStates.entered, need_approve=False)
+
+        self.question_handlers = {
+            "name": {
+                "type": "text_input",
+                "text": "Укажите, пожалуйста, вашe имя!",
+                "validators": lambda x: True,
+                "processor": self.additional_data_factory("name"),
+                "next": "EXIT",
+                "prev": "ENTER"
+            },
+        }
+        return self
+
+    async def empty(self, msg, choice):
+        return None
+
+    def additional_data_factory(self, key):
+        async def inner(msg, choice):
+            gf = await api.girl_form.GirlForm.get()
+            gf.additional_data[key] = choice if choice else msg.text
+            await api.girl_form.GirlForm.update(additional_data=gf.additional_data)
+        return inner
+
+
+class GirlChangePrice(GirlFormBase):
+    @classmethod
+    async def create(cls):
+        self = GirlForm(enter_state=GirlFormPriceStates.entered, need_approve=False)
+
+        self.question_handlers = {
+            "sponsorship_relations": {
+                "type": "yes_no",
+                "text": "Вас интересуют спонсорские отношения?",
+                "validators": lambda x: True,
+                "processor": self.additional_data_factory("sponsorship_relations"),
+                "yes_next": "finance_support",
+                "no_next": "short",
+                "prev": "ENTER"
+            },
+            "finance_support": {
+                "type": "text_input",
+                "text": "Какую финансовую поддержку вы хотели бы получать от мужчины в месяц в рублях?   (Пожалуйста, адекватно оценивайте свою внешность, от этого напрямую зависит сумма обеспечения девушки)",
+                "validators": lambda x: True,
+                "processor": self.additional_data_factory("finance_support"),
+                "next": "short",
+                "prev": "sponsorship_relations"
+            },
+            "short": {
+                "type": "yes_no",
+                "text": "Интересуют короткие свидания с вознаграждением?",
+                "validators": lambda x: True,
+                "processor": self.additional_data_factory("short"),
+                "yes_next": "short_amount",
+                "no_next": "EXIT",
+                "prev": "sponsorship_relations"
+            },
+            "short_amount": {
+                "type": "text_input",
+                "text": "Какую сумму вы хотели бы получать за встречу 2-3 часа с адекватным мужчиной? (Укажите сумму в рублях)",
+                "validators": lambda x: True,
+                "processor": self.additional_data_factory("short_amount"),
+                "next": "EXIT",
+                "prev": "short"
+            },
+        }
+        return self
+
+    async def empty(self, msg, choice):
+        return None
+
+    def additional_data_factory(self, key):
+        async def inner(msg, choice):
+            gf = await api.girl_form.GirlForm.get()
+            gf.additional_data[key] = choice if choice else msg.text
+            await api.girl_form.GirlForm.update(additional_data=gf.additional_data)
+        return inner
+
+
 class GirlForm(GirlFormBase):
     @classmethod
     async def create(cls):
-        self = GirlForm()
+        self = GirlForm(enter_state=GirlFormStates.entered, need_approve=True)
         self.country_list = await request("get", "location/country/")
         self.city_list = []
         for country in self.country_list:
@@ -304,7 +400,7 @@ class GirlForm(GirlFormBase):
             "params": {
                 "type": "text_input",
                 "text": "Укажите, пожалуйста, ваши параметры!\n\n 90/60/90",
-                "validators": lambda x: True,
+                "validators": lambda x: re.fullmatch(r"\d+/\d+/\d+", x),
                 "processor": self.additional_data_factory("body_params"),
                 "next": "nationality",
                 "prev": "age"
@@ -330,7 +426,7 @@ class GirlForm(GirlFormBase):
             "finance_support": {
                 "type": "text_input",
                 "text": "Какую финансовую поддержку вы хотели бы получать от мужчины в месяц в рублях?   (Пожалуйста, адекватно оценивайте свою внешность, от этого напрямую зависит сумма обеспечения девушки)",
-                "validators": lambda x: True,
+                "validators": lambda x: re.fullmatch(r"\d+", x),
                 "processor": self.additional_data_factory("finance_support"),
                 "next": "married_relations",
                 "prev": "sponsorship_relations"
@@ -379,7 +475,7 @@ class GirlForm(GirlFormBase):
             "short_amount": {
                 "type": "text_input",
                 "text": "Какую сумму вы хотели бы получать за встречу 2-3 часа с адекватным мужчиной? (Укажите сумму в рублях)",
-                "validators": lambda x: True,
+                "validators": lambda x: re.fullmatch(r"\d+", x),
                 "processor": self.additional_data_factory("short_amount"),
                 "next": "about",
                 "prev": "short"
@@ -403,7 +499,7 @@ class GirlForm(GirlFormBase):
             "work_phone_number": {
                 "type": "text_input",
                 "text": "Укажите ваш рабочий номер телефона",
-                "validators": lambda x: True,
+                "validators": lambda x: re.fullmatch(r"\+?\d+", x),
                 "processor": self.additional_data_factory("work_phone_number"),
                 "next": "whatsapp_number",
                 "prev": "sex"

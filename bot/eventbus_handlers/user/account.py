@@ -20,5 +20,4 @@ async def payment_screenshot_processed(bot: Bot, body):
         text = SCREENSHOT_REJECT.format(amount=body["amount"])
 
     await bot.send_message(body["user"], text)
-
     return True

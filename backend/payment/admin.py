@@ -19,7 +19,7 @@ class PaymentScreenshotAdmin(admin.ModelAdmin):
     )
 
     search_fields = (
-        "user__id",
+        "user__id__exact",
     )
 
     @admin.display(description='Скриншот')

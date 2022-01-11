@@ -23,6 +23,10 @@ class BotUserAdmin(admin.ModelAdmin):
         "balance"
     )
 
+    readonly_fields = (
+        "last_usage_at",
+    )
+
 
 @admin.register(models.GirlProfile)
 class GirlProfileAdmin(admin.ModelAdmin):
@@ -32,3 +36,22 @@ class GirlProfileAdmin(admin.ModelAdmin):
 @admin.register(models.GirlForm)
 class GirlFormAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(models.UserSupportQuestion)
+class UserSupportQuestionAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user",
+        "question_body",
+        "answer_body",
+        "status"
+    )
+
+    list_filter = (
+        "status",
+    )
+
+    search_fields = (
+        "user__id__exact",
+    )

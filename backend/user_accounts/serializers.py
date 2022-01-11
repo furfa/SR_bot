@@ -30,15 +30,29 @@ class GirlFormSerializer(serializers.ModelSerializer):
         model = models.GirlForm
         fields = (
             "id",
+            "status",
             "country",
             "city",
             "nationality",
             "additional_data",
-            "user"
+            "user",
+            "has_top_status",
+            "price"
         )
 
     def get_user(self, obj):
         return obj.profile.user.id
+
+
+class GirlFormPhotoSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.GirlFormPhoto
+        fields = (
+            "is_approve",
+            "photo",
+            "form",
+        )
 
 
 class UserSupportQuestionSerializer(serializers.ModelSerializer):

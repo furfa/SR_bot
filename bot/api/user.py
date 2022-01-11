@@ -13,7 +13,7 @@ class BackendUser(BaseModel):
     balance: float
 
     @staticmethod
-    async def list():
+    async def list() -> list["BackendUser"]:
         return await get_instance(list[BackendUser], 'get', path='users')
 
     @staticmethod
@@ -25,14 +25,20 @@ class BackendUser(BaseModel):
         return await get_instance(BackendUser, 'post', path='users', json=data)
 
     @staticmethod
-    async def get() -> "BackendUser":
-        tg_user = types.User.get_current()
-        return await get_instance(BackendUser, 'get', path=f'users/{tg_user.id}')
+    async def get(tg_user=None, tg_user_id=None) -> "BackendUser":
+        if not tg_user_id:
+            if not tg_user:
+                tg_user = types.User.get_current()
+            tg_user_id = tg_user.id
+        return await get_instance(BackendUser, 'get', path=f'users/{tg_user_id}')
 
     @staticmethod
-    async def update(**kwargs):
-        tg_user = types.User.get_current()
-        return await get_instance(BackendUser, 'patch', path=f'users/{tg_user.id}', json=kwargs)
+    async def update(tg_user=None, tg_user_id=None, **kwargs):
+        if not tg_user_id:
+            if not tg_user:
+                tg_user = types.User.get_current()
+            tg_user_id = tg_user.id
+        return await get_instance(BackendUser, 'patch', path=f'users/{tg_user_id}', json=kwargs)
 
     @staticmethod
     async def check_is_admin():

@@ -1,12 +1,14 @@
 from keyboards.default.consts import DefaultConstructor
 from templates.user.start import BACK_BUTTON
 
+
 class AdminMenuKeyboard(DefaultConstructor):
 
     @staticmethod
     def admin_menu():
 
         actions = [
+            "Пользователи",
             "Тех. Поддержка",
             "Пополнения",
             BACK_BUTTON

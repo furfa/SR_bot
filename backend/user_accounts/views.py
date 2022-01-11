@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 
-from rest_framework import viewsets
+from rest_framework import viewsets, parsers
 from rest_framework import mixins
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound, ParseError, APIException
@@ -55,15 +55,6 @@ class UserSupportQuestionViewset(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['type']
 
-    def perform_create(self, serializer):
-        obj = serializer.save()
-
-        # Уведомляем админов
-        for admin in models.BotUser.objects.filter(is_admin=True):
-            publish("new_question", {
-                "admin_id": admin.id,
-            })
-
     def perform_update(self, serializer):
         serializer.save(status=models.UserSupportQuestion.StatusChoices.ANSWERED)
 
@@ -79,7 +70,39 @@ class GirlFormViewset(
 
     def get_object(self):
         user = models.BotUser.objects.get(pk=self.kwargs["pk"])
-        form = user.girl_profile.forms.filter(
+        forms = user.girl_profile.forms.filter(
             ~Q(status=models.GirlForm.StatusChoices.DELETED)
-        ).first()
+        )
+        if not forms:
+            raise NotFound()
+        form = forms.latest('id')
+
+        if not form:
+            raise NotFound()
         return form
+
+    @action(detail=True, methods=["POST"])
+    def set_filled(self, request, pk=None):
+        obj = self.get_object()
+        obj.status = models.GirlForm.StatusChoices.FILLED
+        obj.save()
+
+        return Response( self.serializer_class(obj).data )
+
+    @action(detail=False, methods=["POST"])
+    def create_by_user(self, request, pk=None):
+        try:
+            user_id = request.data.get("user")
+            user = models.BotUser.objects.get(id=user_id)
+            profile = models.GirlProfile.objects.get(user=user)
+            obj = models.GirlForm.objects.create(profile=profile)
+        except Exception:
+            raise NotFound()
+
+        return Response( self.serializer_class(obj).data)
+
+
+class GirlFormPhotoViewset(viewsets.ModelViewSet):
+    queryset = models.GirlFormPhoto.objects.all()
+    serializer_class = serializers.GirlFormPhotoSerializer
+    parser_classes = (parsers.MultiPartParser, parsers.JSONParser)
