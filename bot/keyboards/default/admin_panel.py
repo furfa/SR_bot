@@ -9,6 +9,7 @@ class AdminMenuKeyboard(DefaultConstructor):
 
         actions = [
             "Пользователи",
+            "Анкеты",
             "Тех. Поддержка",
             "Пополнения",
             BACK_BUTTON

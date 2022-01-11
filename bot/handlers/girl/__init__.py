@@ -9,8 +9,8 @@ from . import form, secret_room
 
 async def setup(dp: Dispatcher):
     girl_form = await form.GirlForm.create()
-    dp.register_message_handler(girl_form.message_handler, text=["/girl_register_form"])
     girl_form.register_internal_handlers(dp)
+    # dp.register_message_handler(girl_form.message_handler, text=["/girl_register_form"])
 
     dp.register_message_handler(secret_room.welcome, SexFilter(is_girl=True))
     dp.register_callback_query_handler(secret_room.welcome_query, SrMenuInline.back_to_secret_room.filter(), SexFilter(is_girl=True), state="*")

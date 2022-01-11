@@ -23,18 +23,22 @@ class GirlForm(BaseModel):
         })
 
     @staticmethod
-    async def get() -> "GirlForm":
-        tg_user = types.User.get_current()
-        return await get_instance(GirlForm, 'get', f'girl_forms/{tg_user.id}')
+    async def get(tg_user_id = None) -> "GirlForm":
+        if not tg_user_id:
+            tg_user = types.User.get_current()
+            tg_user_id = tg_user.id
+        return await get_instance(GirlForm, 'get', f'girl_forms/{tg_user_id}')
 
     @staticmethod
-    async def list() -> list["GirlForm"]:
-        return await get_instance(list[GirlForm], 'get', path='girl_forms')
+    async def list(query={}) -> list["GirlForm"]:
+        return await get_instance(list[GirlForm], 'get', path='girl_forms', query=query)
 
     @staticmethod
-    async def update(**kwargs) -> "GirlForm":
-        tg_user = types.User.get_current()
-        return await get_instance(GirlForm, 'patch', path=f'girl_forms/{tg_user.id}', json=kwargs)
+    async def update(tg_user_id, **kwargs) -> "GirlForm":
+        if not tg_user_id:
+            tg_user = types.User.get_current()
+            tg_user_id = tg_user.id
+        return await get_instance(GirlForm, 'patch', path=f'girl_forms/{tg_user_id}', json=kwargs)
 
     @staticmethod
     async def set_filled(**kwargs) -> "GirlForm":

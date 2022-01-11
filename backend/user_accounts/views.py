@@ -68,6 +68,9 @@ class GirlFormViewset(
     queryset = models.GirlForm.objects.all()
     serializer_class = serializers.GirlFormSerializer
 
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['status']
+
     def get_object(self):
         user = models.BotUser.objects.get(pk=self.kwargs["pk"])
         forms = user.girl_profile.forms.filter(

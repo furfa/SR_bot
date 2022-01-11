@@ -35,7 +35,28 @@ class GirlProfileAdmin(admin.ModelAdmin):
 
 @admin.register(models.GirlForm)
 class GirlFormAdmin(admin.ModelAdmin):
-    pass
+    list_display = (
+        "id",
+        "status",
+        "price",
+        "created_at",
+        "display_user",
+    )
+
+    search_fields = (
+        "profile__user__id__exact",
+    )
+
+    list_filter = (
+        "status",
+    )
+
+    @admin.display(description='Пользователь')
+    def display_user(self, obj):
+        try:
+            return obj.profile.user.id
+        except Exception as e:
+            return "-"
 
 
 @admin.register(models.UserSupportQuestion)

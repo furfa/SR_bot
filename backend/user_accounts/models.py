@@ -63,6 +63,7 @@ class GirlProfile(DjangoModelAutoStr, AbstractProfile):
 
 
 class GirlForm(DjangoModelAutoStr, models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
     has_top_status = models.BooleanField(default=False, verbose_name="Есть топ статус")
     profile = models.ForeignKey(GirlProfile, on_delete=models.SET_NULL, null=True, related_name="forms")
 

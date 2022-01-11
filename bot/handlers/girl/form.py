@@ -183,7 +183,6 @@ class GirlFormBase:
         # except ValueError:
         if self.need_approve:
             await api.girl_form.GirlForm.create()
-
         await self.message_handler(query.message, state)
 
     async def message_handler(self, msg: types.Message, state: FSMContext):
@@ -192,17 +191,24 @@ class GirlFormBase:
             question_number = data.get('question_number')
             print(f"{question_number=}")
 
-            if question_number and self.question_handlers[question_number]["type"] != "text_input":
-                await msg.answer("⛔ Неверный формат, введите еще раз")
-                return
-
-            if question_number and not await self.validate_answer(msg.text, question_number):
+            warning = "⛔️ Неверный формат, введите еще раз"
+            if (
+                    question_number and (
+                        self.question_handlers[question_number]["type"] != "text_input" or
+                        not await self.validate_answer(msg.text, question_number)
+                    )
+            ):
                 if pqm := data.get("prev_question_message"):
-                    await pqm.edit_text("<b>⛔️ Неверный формат, введите еще раз</b>\n" + pqm.text,
-                                        reply_markup=GirlFormKeyboard.back())
+                    # resend message
+                    await pqm.delete()
+                    new_text = ("" if warning in pqm.text else "<b>"+warning+"</b>\n") + pqm.text
+                    data["prev_question_message"] = await pqm.answer(
+                        new_text,
+                        reply_markup=pqm.reply_markup
+                    )
                     await msg.delete()
                 else:
-                    await msg.answer("⛔️ Неверный формат, введите еще раз", reply_markup=GirlFormKeyboard.back())
+                    await msg.answer("<b>"+warning+"</b>", reply_markup=GirlFormKeyboard.back())
                 return
 
         await self.process_answer(msg, state, question_number)
@@ -238,7 +244,7 @@ class GirlFormBase:
         async with state.proxy() as data:
             handler = self.question_handlers[question_number]
 
-            if handler["type"] == "text_input":
+            if handler["type"] in ["text_input", "media"]:
                 return await msg.answer(handler["text"], reply_markup=GirlFormKeyboard.back())
 
             if handler["type"] == "button_choices":
