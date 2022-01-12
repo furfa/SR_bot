@@ -108,7 +108,7 @@ class GirlForm(DjangoModelAutoStr, models.Model):
 
 class GirlFormPhoto(DjangoModelAutoStr, models.Model):
     is_approve = models.BooleanField(default=False, verbose_name="Для подтверждения")
-    photo = models.ImageField(upload_to="girl_photo/", verbose_name="Фото")
+    photo = models.FileField(upload_to="girl_photo/", verbose_name="Фото")
     form = models.ForeignKey(GirlForm, on_delete=models.CASCADE, verbose_name="Форма", related_name="photos")
 
 

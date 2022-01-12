@@ -238,7 +238,7 @@ async def admin_gf_view(gf):
     if not text:
         text = "Анкета пустая"
     else:
-        text += f"\n\n<b>ID:</b> {gf.id}\n"
+        text += f"\n\n<b>ID:</b> {gf.user}\n"
         text += f"<b>Статус:</b> {gf.status}\n"
         text += f"<b>Цена:</b> {gf.price}\n"
         text += f"<b>Топ статус:</b> {gf.has_top_status}\n"
@@ -253,6 +253,13 @@ async def form_detail_view(msg: types.Message):
         text = text.removeprefix("/check").strip()
         user_id = int(text)
         gf = await GirlForm.get(user_id)
+
+        for photo_obj in gf.photos:
+            b = await api.base.get_image(photo_obj.photo)
+            caption = None
+            if photo_obj.is_approve:
+                caption = "Фото для подтверждения"
+            await msg.answer_photo(b, caption=caption)
 
         await msg.answer(
             await admin_gf_view(gf)

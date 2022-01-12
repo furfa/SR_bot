@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'django_filters',
     'constance',                   # Динамические настройки
     'constance.backends.database', # Храним в бд
+    'django_json_widget',
 
     'user_accounts.apps.UserAccountsConfig',
     'event_bus',

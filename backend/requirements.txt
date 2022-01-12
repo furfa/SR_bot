@@ -41,6 +41,7 @@ gunicorn
 pyyaml
 django_filter
 django-model-utils
+django-json-widget
 
 django-constance
 django-picklefield

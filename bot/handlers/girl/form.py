@@ -1,5 +1,6 @@
 import asyncio
 import re
+from io import BytesIO
 
 import aiogram
 from aiogram import types, Bot, Dispatcher
@@ -72,6 +73,7 @@ class GirlFormBase:
     def register_internal_handlers(self, dp: Dispatcher):
         # Во время опроса
         dp.register_message_handler(self.message_handler, state=self.enter_state)
+        dp.register_message_handler(self.media_handler, state=self.enter_state, content_types=["photo", "video"])
         # Кнопка назад
         dp.register_callback_query_handler(
             self.back_query_handler,
@@ -184,6 +186,29 @@ class GirlFormBase:
         if self.need_approve:
             await api.girl_form.GirlForm.create()
         await self.message_handler(query.message, state)
+
+    async def media_handler(self, msg: types.Message, state: FSMContext):
+        async with state.proxy() as data:
+            question_number = data.get('question_number')
+
+        warning = "⛔️ Неверный формат, введите еще раз"
+        if not msg.photo or (question_number and self.question_handlers[question_number]["type"] != "media"):
+            if pqm := data.get("prev_question_message"):
+                # resend message
+                await pqm.delete()
+                new_text = ("" if warning in pqm.text else "<b>" + warning + "</b>\n") + pqm.text
+                data["prev_question_message"] = await pqm.answer(
+                    new_text,
+                    reply_markup=pqm.reply_markup
+                )
+                await msg.delete()
+            else:
+                await msg.answer("<b>" + warning + "</b>", reply_markup=GirlFormKeyboard.back())
+            return
+
+        print(f"{msg=} {question_number=}")
+        await self.process_answer(msg, state, question_number)
+        await self.send_question(msg, state)
 
     async def message_handler(self, msg: types.Message, state: FSMContext):
         async with state.proxy() as data:
@@ -475,7 +500,7 @@ class GirlForm(GirlFormBase):
                 "validators": lambda x: True,
                 "processor": self.additional_data_factory("short"),
                 "yes_next": "short_amount",
-                "no_next": "EXIT",
+                "no_next": "about",
                 "prev": "abroad"
             },
             "short_amount": {
@@ -515,8 +540,33 @@ class GirlForm(GirlFormBase):
                 "text": "Отправьте ваш номер whatsapp, или минус для пропуска",
                 "validators": lambda x: True,
                 "processor": self.additional_data_factory("whatsapp_number"),
-                "next": "EXIT",
+                "next": "verification_photo",
                 "prev": "work_phone_number"
+            },
+            "verification_photo": {
+                "type": "media",
+                "text": "Для того, чтобы найти Вам мужчину мы должны убедится в том, что это ваши фотографии. \nОтправьте пожалуйста в чат ваше селфи с лицом и жестом 🤞🏾, для верификации. \nПроверка проводится роботом, после подтверждения личности ваше фото удаляется из базы данных.\n Для вашего удобства и безопасности, мы боремся за то, чтобы все участники были реальными людьми.\n Спасибо за понимание! Удачных знакомств...♥️",
+                "validators": lambda x: True,
+                "processor": self.photo_factory(is_approve=True),
+                "next": "add_photo",
+                "prev": "whatsapp_number"
+            },
+            "add_photo": {
+                "type": "yes_no",
+                "text": "Пришлите Ваши фото и видео.\nМужчинам уже давно не интересны профессиональные фото, зачастую от того, что девушки часто в жизни выглядят совсем иначе, поэтому просим Вас быть предельно честной. \nПеречень фото, которые нужно предоставить:\n▫️ Фото или видео лица/селфи (минимум макияжа и фильтров)\n▫️ Фигура с разных ракурсов, в полный рост, в обтягивающей одежде или купальнике, где хорошо будут видны: грудь, ягодицы, ноги, живот.\▫️ Разрешается прикрепить несколько фото со студийных съёмок ▫️ Всего не более 10 фото или видео\nСовет. Если хотите найти достойного мужчину, то потратьте 20 минут своего времени и снимите новые фото. \nЕсли они не будут подходить, то Ваша анкета не пройдёт модерацию и наша администрация сообщит Вам об этом.\n Добавляем фото?",
+                "validators": lambda x: True,
+                "processor": self.empty,
+                "yes_next": "wait_photo",
+                "no_next": "EXIT",
+                "prev": "verification_photo"
+            },
+            "wait_photo": {
+                "type": "media",
+                "text": "Жду фото",
+                "validators": lambda x: True,
+                "processor": self.photo_factory(is_approve=False),
+                "next": "add_photo",
+                "prev": "add_photo"
             },
         }
         return self
@@ -537,7 +587,7 @@ class GirlForm(GirlFormBase):
     def additional_data_factory(self, key):
         async def inner(msg, choice):
             gf = await api.girl_form.GirlForm.get()
-            gf.additional_data[key] = choice if choice else msg.text
+            gf.additional_data[key] = choice if choice is not None else msg.text
             await api.girl_form.GirlForm.update(additional_data=gf.additional_data)
         return inner
 
@@ -545,3 +595,13 @@ class GirlForm(GirlFormBase):
         for i in self.country_list:
             if i["name"] == choice:
                 await api.girl_form.GirlForm.update(nationality=i["id"])
+
+    def photo_factory(self, **kwargs):
+        async def inner(msg: types.Message, choice):
+            bot = Bot.get_current()
+            downloaded = await bot.download_file_by_id(msg.photo[-1].file_id)
+            b = BytesIO()
+            b.write(downloaded.getvalue())
+            b.seek(0)
+            await api.girl_form.GirlFormPhoto.create(b, **kwargs)
+        return inner

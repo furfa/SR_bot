@@ -108,4 +108,4 @@ class GirlFormViewset(
 class GirlFormPhotoViewset(viewsets.ModelViewSet):
     queryset = models.GirlFormPhoto.objects.all()
     serializer_class = serializers.GirlFormPhotoSerializer
-    parser_classes = (parsers.MultiPartParser, parsers.JSONParser)
+    parser_classes = (parsers.MultiPartParser, )

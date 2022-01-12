@@ -8,6 +8,8 @@ from django.utils.functional import cached_property
 from django.urls import reverse
 from django.db.models import Count, Q
 from django.db.utils import ProgrammingError
+from django.db.models import JSONField
+from django_json_widget.widgets import JSONEditorWidget
 
 from . import models
 
@@ -33,8 +35,32 @@ class GirlProfileAdmin(admin.ModelAdmin):
     pass
 
 
+class GirlFormPhotoInline(admin.StackedInline):
+    model = models.GirlFormPhoto
+    fields = (
+        "id",
+        "display_photo",
+        "is_approve",
+    )
+    readonly_fields = (
+        "id",
+        "display_photo",
+        "is_approve",
+    )
+
+    @admin.display(description='Фото')
+    def display_photo(self, obj):
+        return mark_safe(f'<img src="{obj.photo.url}" height="300"')
+
+    extra = 0
+
+
 @admin.register(models.GirlForm)
 class GirlFormAdmin(admin.ModelAdmin):
+    formfield_overrides = {
+        JSONField: {'widget': JSONEditorWidget},
+    }
+
     list_display = (
         "id",
         "status",
@@ -49,6 +75,10 @@ class GirlFormAdmin(admin.ModelAdmin):
 
     list_filter = (
         "status",
+    )
+
+    inlines = (
+        GirlFormPhotoInline,
     )
 
     @admin.display(description='Пользователь')

@@ -23,8 +23,21 @@ class BotUserSerializer(serializers.ModelSerializer):
         )
 
 
+class GirlFormPhotoSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.GirlFormPhoto
+        fields = (
+            "id",
+            "is_approve",
+            "photo",
+            "form",
+        )
+
+
 class GirlFormSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
+    photos = GirlFormPhotoSerializer(many=True)
 
     class Meta:
         model = models.GirlForm
@@ -35,6 +48,7 @@ class GirlFormSerializer(serializers.ModelSerializer):
             "city",
             "nationality",
             "additional_data",
+            "photos",
             "user",
             "has_top_status",
             "price"
@@ -42,17 +56,6 @@ class GirlFormSerializer(serializers.ModelSerializer):
 
     def get_user(self, obj):
         return obj.profile.user.id
-
-
-class GirlFormPhotoSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = models.GirlFormPhoto
-        fields = (
-            "is_approve",
-            "photo",
-            "form",
-        )
 
 
 class UserSupportQuestionSerializer(serializers.ModelSerializer):
