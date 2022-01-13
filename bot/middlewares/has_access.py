@@ -13,7 +13,6 @@ class HasAccessMiddleware(BaseMiddleware):
 
     async def on_pre_process_message(self, message: types.Message, data: dict):
         user_id = message.from_user.id
-
         try:
             be = await BackendUser.update_last_usage()
         except Exception as e:

@@ -74,28 +74,29 @@ async def welcome_query(query: types.CallbackQuery, state: FSMContext, callback_
 
 
 async def form_menu(query: types.CallbackQuery, state: FSMContext, callback_data: dict):
+    await query.message.delete()
     try:
         gf = await GirlForm.get()
     except ValueError:
-        await query.message.edit_text(CREATE_FORM, reply_markup=SrMenuInline.ask_to_create_form())
+        await query.message.answer(CREATE_FORM, reply_markup=SrMenuInline.ask_to_create_form())
         return
     if gf.status == "CREATED":
-        await query.message.edit_text(CREATE_FORM, reply_markup=SrMenuInline.ask_to_create_form())
+        await query.message.answer(CREATE_FORM, reply_markup=SrMenuInline.ask_to_create_form())
         return
     if gf.status == "FILLED":
-        await query.message.edit_text(FORM_ON_MODERATION, reply_markup=SrMenuInline.only_back())
+        await query.message.answer(FORM_ON_MODERATION, reply_markup=SrMenuInline.only_back())
         return
 
     if gf.status == "CONFIRMED":
-        await query.message.edit_text(FORM_CONFIRMED.format(await display_girl_form(gf)),
+        await query.message.answer(FORM_CONFIRMED.format(await display_girl_form(gf)),
                                       reply_markup=SrMenuInline.form_menu())
         return
 
     if gf.status == "REJECTED":
-        await query.message.edit_text(FORM_REJECTED, reply_markup=SrMenuInline.ask_to_create_form())
+        await query.message.answer(FORM_REJECTED, reply_markup=SrMenuInline.ask_to_create_form())
         return
 
-    await query.message.edit_text(CREATE_FORM, reply_markup=SrMenuInline.ask_to_create_form())
+    await query.message.answer(CREATE_FORM, reply_markup=SrMenuInline.ask_to_create_form())
 
 
 async def delete_form(query: types.CallbackQuery, state: FSMContext, callback_data: dict):

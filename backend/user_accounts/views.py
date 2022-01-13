@@ -44,6 +44,7 @@ class BotUserViewset(viewsets.ModelViewSet):
     def update_last_usage(self, request, pk=None):
         user = self.get_object()
         user.last_usage_at = timezone.now()
+        user.telegram_meta = request.data
         user.save()
         return Response( self.serializer_class(user).data )
 

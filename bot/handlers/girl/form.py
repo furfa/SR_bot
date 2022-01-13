@@ -11,6 +11,7 @@ from loguru import logger
 
 from api.base import request
 import api.girl_form
+from handlers.girl.secret_room import display_girl_form
 from keyboards.inline.consts import InlineConstructor
 from states.girl.form import GirlFormStates, GirlFormNameStates, GirlFormPriceStates
 
@@ -114,13 +115,11 @@ class GirlFormBase:
 
         await query.message.edit_text(query.message.text)
         if self.question_handlers[question_num]["type"] == "yes_no":
-            await query.message.answer(f"👉 {'Да' if choice else 'Нет'}")
             async with state.proxy() as data:
                 data['question_number'] = self.question_handlers[question_num]["yes_next" if choice else "no_next"]
             await self.process_answer(state=state, question_number=question_num, choice=choice)
             await self.send_question(query.message, state, incremented=True)
         else:
-            await query.message.answer(f"👉 {choice}")
             await self.process_answer(state=state, question_number=question_num, choice=choice)
             await self.send_question(query.message, state, incremented=False)
 
@@ -141,7 +140,6 @@ class GirlFormBase:
                 res_str = "\n".join(
                     "🔹 " + choice for choice in selected_choices)
                 await query.message.delete()
-                await query.message.answer(question_text + "\n\n<b>Выбрано:</b> \n" + res_str)
                 await self.process_answer(state=state, question_number=question_num, choice=selected_choices)
                 await self.send_question(query.message, state)
                 return
@@ -172,6 +170,8 @@ class GirlFormBase:
             question_number = data['question_number']
         logger.error(f"{question_number=}")
         if question_number == "ENTER":
+            if form_info_message := (await state.get_data()).get("form_info_message"):
+                await form_info_message.delete()
             await state.finish()
             await query.message.answer("Выхожу из анкеты ❌")
             return
@@ -190,7 +190,7 @@ class GirlFormBase:
     async def media_handler(self, msg: types.Message, state: FSMContext):
         async with state.proxy() as data:
             question_number = data.get('question_number')
-
+        await msg.delete()
         warning = "⛔️ Неверный формат, введите еще раз"
         if not msg.photo or (question_number and self.question_handlers[question_number]["type"] != "media"):
             if pqm := data.get("prev_question_message"):
@@ -201,7 +201,6 @@ class GirlFormBase:
                     new_text,
                     reply_markup=pqm.reply_markup
                 )
-                await msg.delete()
             else:
                 await msg.answer("<b>" + warning + "</b>", reply_markup=GirlFormKeyboard.back())
             return
@@ -215,6 +214,9 @@ class GirlFormBase:
             logger.info(f"{dict(data)= } {msg=}")
             question_number = data.get('question_number')
             print(f"{question_number=}")
+            if msg.chat.id == msg.from_user.id:
+                await msg.delete()
+
 
             warning = "⛔️ Неверный формат, введите еще раз"
             if (
@@ -231,11 +233,9 @@ class GirlFormBase:
                         new_text,
                         reply_markup=pqm.reply_markup
                     )
-                    await msg.delete()
                 else:
-                    await msg.answer("<b>"+warning+"</b>", reply_markup=GirlFormKeyboard.back())
+                    data["prev_question_message"] = await msg.answer("<b>"+warning+"</b>", reply_markup=GirlFormKeyboard.back())
                 return
-
         await self.process_answer(msg, state, question_number)
         await self.send_question(msg, state)
 
@@ -249,10 +249,12 @@ class GirlFormBase:
                     await self.enter_state.set()
 
             question_number = data['question_number']
+            logger.info(f"send_question {question_number=}")
+            logger.info(f"send_question {question_number=}")
             try:
                 if pqm := data.get("prev_question_message"):
-                    await pqm.edit_text(pqm.text)  # delete inline buttons
-            except (exceptions.MessageNotModified, exceptions.MessageToEditNotFound) as e:
+                    await pqm.delete()
+            except Exception as e:
                 logger.error("error while deleting markup")
 
         if question_number == "EXIT":
@@ -263,11 +265,18 @@ class GirlFormBase:
             return
 
         async with state.proxy() as data:
-            data['prev_question_message'] = await self.send_question_message(msg, state, question_number)
+            if data.get("form_info_message"):
+                await data["form_info_message"].delete()
 
-    async def send_question_message(self, msg: types.Message, state: FSMContext, question_number: int):
+            info_text = await display_girl_form(await api.girl_form.GirlForm.get())
+            if info_text:
+                data["form_info_message"] = await msg.answer(info_text)
+            data["prev_question_message"] = await self.send_question_message(msg, state, question_number)
+
+    async def send_question_message(self, msg: types.Message, state: FSMContext, question_number: str):
         async with state.proxy() as data:
             handler = self.question_handlers[question_number]
+            logger.info(f"sending {handler=}")
 
             if handler["type"] in ["text_input", "media"]:
                 return await msg.answer(handler["text"], reply_markup=GirlFormKeyboard.back())

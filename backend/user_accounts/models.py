@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 class BotUser(DjangoModelAutoStr, models.Model):
     id = models.IntegerField(verbose_name="tg_id", primary_key=True)
+    telegram_meta = models.JSONField(verbose_name="Метаданные tg", default=dict)
     has_access = models.BooleanField(verbose_name="Есть доступ к боту", default=True)
     is_admin = models.BooleanField(verbose_name="Является ли админом", default=False)
     language = models.CharField(verbose_name="Локаль пользователя", choices=settings.LANGUAGES, default=settings.LANGUAGES[0][0], max_length=50)

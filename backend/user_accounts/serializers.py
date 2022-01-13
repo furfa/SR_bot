@@ -15,6 +15,7 @@ class BotUserSerializer(serializers.ModelSerializer):
         model = models.BotUser
         fields = (
             "id",
+            "telegram_meta",
             "has_access",
             "language",
             "sex",

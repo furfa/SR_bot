@@ -16,18 +16,31 @@ from . import models
 
 @admin.register(models.BotUser)
 class BotUserAdmin(admin.ModelAdmin):
+    formfield_overrides = {
+        JSONField: {'widget': JSONEditorWidget},
+    }
+
     list_display = (
         "id",
         "has_access",
         "is_admin",
         "sex",
         "last_usage_at",
-        "balance"
+        "balance",
+        "display_tg_meta"
     )
 
     readonly_fields = (
         "last_usage_at",
     )
+
+    @admin.display(description='tg_meta')
+    def display_tg_meta(self, obj):
+        username = obj.telegram_meta.get("username", "")
+        last_name = obj.telegram_meta.get("last_name", "")
+        first_name = obj.telegram_meta.get("first_name", "")
+        text = f"<b>{username}</b><br/>{first_name} {last_name}"
+        return mark_safe(text)
 
 
 @admin.register(models.GirlProfile)
