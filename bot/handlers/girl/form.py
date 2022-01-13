@@ -99,7 +99,7 @@ class GirlFormBase:
     async def button_choices_query_handler(self, query: types.CallbackQuery, state: FSMContext, callback_data: dict):
         question_num = callback_data["question_num"]
         option_num = int(callback_data["option_num"])
-        if self.question_handlers[question_num]["type"] == "button_choices":
+        if self.question_handlers[question_num]["type"] in ("button_choices", "city_button_choices"):
             choices = self.question_handlers[question_num]["choices"]
         elif self.question_handlers[question_num]["type"] == "yes_no":
             choices = [True, False]
@@ -290,6 +290,20 @@ class GirlFormBase:
                                             ["✅ Да", "❌ Нет"],
                                             question_number
                                         ))
+            if handler["type"] == "city_button_choices":
+                gf = await api.girl_form.GirlForm.get()
+                selected_cities = None
+                for country in self.country_list:
+                    if country["id"] == gf.country:
+                        selected_cities = country["cities"]
+                if not selected_cities:
+                    selected_cities = self.city_list
+
+                return await msg.answer(handler["text"],
+                                        reply_markup=GirlFormKeyboard.button_choices(
+                                            [city["name"] for city in selected_cities],
+                                            question_number
+                                        ))
 
     async def validate_answer(self, text: str, question_number: str):
         if handler := self.question_handlers.get(question_number):
@@ -404,7 +418,7 @@ class GirlForm(GirlFormBase):
                 "prev": "ENTER"
             },
             "city": {
-                "type": "button_choices",
+                "type": "city_button_choices",
                 "choices": [city["name"] for city in self.city_list],
                 "text": "Укажите, пожалуйста, ваш город проживания!",
                 "validators": lambda x: True,
