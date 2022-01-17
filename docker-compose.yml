@@ -35,7 +35,7 @@ services:
 
   celery:
     <<: *backend_base_config
-    #command: celery --app=config worker -B --max-tasks-per-child 1 --loglevel=info --logfile=logs/celery.log
+    #command: celerepyty --app=config worker -B --max-tasks-per-child 1 --loglevel=info --logfile=logs/celery.log
     command: watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- celery --app=config worker -B --max-tasks-per-child 1 --loglevel=info --logfile=logs/celery.log
     ports: []
 

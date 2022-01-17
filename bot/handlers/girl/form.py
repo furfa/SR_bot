@@ -243,7 +243,12 @@ class GirlFormBase:
         async with state.proxy() as data:
             if not incremented:
                 if not data.get('question_number') is None:
-                    data['question_number'] = self.question_handlers[data['question_number']]["next"]
+                    qn = self.question_handlers[data['question_number']].get("next", None)
+                    if qn is None:
+                        qn = self.question_handlers[data['question_number']].get("yes_next", None)
+                    if qn is None:
+                        qn = self.question_handlers[data['question_number']].get("no_next", None)
+                    data['question_number'] = qn
                 else:
                     data['question_number'] = self.get_start_node()
                     await self.enter_state.set()
@@ -265,12 +270,19 @@ class GirlFormBase:
             return
 
         async with state.proxy() as data:
-            if data.get("form_info_message"):
-                await data["form_info_message"].delete()
+            # if data.get("form_info_message"):
+            #     await data["form_info_message"].delete()
 
             info_text = await display_girl_form(await api.girl_form.GirlForm.get())
             if info_text:
-                data["form_info_message"] = await msg.answer(info_text, disable_notification=True)
+                try:
+                    data["form_info_message"] = await data["form_info_message"].edit_text(info_text)
+                except aiogram.exceptions.MessageNotModified:
+                    pass
+                except Exception:
+                    logger.exception("Exception while editing form_info_message")
+                    data["form_info_message"] = await msg.answer(info_text, disable_notification=True)
+
             data["prev_question_message"] = await self.send_question_message(msg, state, question_number)
 
     async def send_question_message(self, msg: types.Message, state: FSMContext, question_number: str):
@@ -346,9 +358,7 @@ class GirlChangeName(GirlFormBase):
 
     def additional_data_factory(self, key):
         async def inner(msg, choice):
-            gf = await api.girl_form.GirlForm.get()
-            gf.additional_data[key] = choice if choice else msg.text
-            await api.girl_form.GirlForm.update(additional_data=gf.additional_data)
+            asyncio.create_task(api.girl_form.GirlForm.update_additional_data_key(key, choice if choice is not None else msg.text))
         return inner
 
 
@@ -400,9 +410,7 @@ class GirlChangePrice(GirlFormBase):
 
     def additional_data_factory(self, key):
         async def inner(msg, choice):
-            gf = await api.girl_form.GirlForm.get()
-            gf.additional_data[key] = choice if choice else msg.text
-            await api.girl_form.GirlForm.update(additional_data=gf.additional_data)
+            asyncio.create_task(api.girl_form.GirlForm.update_additional_data_key(key, choice if choice is not None else msg.text))
         return inner
 
 
@@ -601,10 +609,11 @@ class GirlForm(GirlFormBase):
         return match
 
     async def body_params_processor(self, msg, choise):
-        gf = await api.girl_form.GirlForm.get()
         match = re.fullmatch(r"(\d+)[ \\/](\d+)[ \\/](\d+)", msg.text)
-        gf.additional_data["body_params"] = match.group(1) + "/" + match.group(2) + "/" + match.group(3)
-        await api.girl_form.GirlForm.update(additional_data=gf.additional_data)
+        body_params = match.group(1) + "/" + match.group(2) + "/" + match.group(3)
+        asyncio.create_task(
+            api.girl_form.GirlForm.update_additional_data_key("body_params", body_params)
+        )
 
     def phone_number_validator(self, phone):
         phone = phone.strip()
@@ -626,18 +635,16 @@ class GirlForm(GirlFormBase):
     async def country_processor(self, msg, choice):
         for i in self.country_list:
             if i["name"] == choice:
-                await api.girl_form.GirlForm.update(country=i["id"])
+                asyncio.create_task(api.girl_form.GirlForm.update(country=i["id"]))
 
     async def city_processor(self, msg, choice):
         for i in self.city_list:
             if i["name"] == choice:
-                await api.girl_form.GirlForm.update(city=i["id"])
+                asyncio.create_task(api.girl_form.GirlForm.update(city=i["id"]))
 
     def additional_data_factory(self, key):
         async def inner(msg, choice):
-            gf = await api.girl_form.GirlForm.get()
-            gf.additional_data[key] = choice if choice is not None else msg.text
-            await api.girl_form.GirlForm.update(additional_data=gf.additional_data)
+            asyncio.create_task(api.girl_form.GirlForm.update_additional_data_key(key, choice if choice is not None else msg.text))
         return inner
 
     def photo_factory(self, **kwargs):
@@ -647,5 +654,5 @@ class GirlForm(GirlFormBase):
             b = BytesIO()
             b.write(downloaded.getvalue())
             b.seek(0)
-            await api.girl_form.GirlFormPhoto.create(b, **kwargs)
+            asyncio.create_task(api.girl_form.GirlFormPhoto.create(b, **kwargs))
         return inner

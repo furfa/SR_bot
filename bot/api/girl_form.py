@@ -63,3 +63,9 @@ class GirlForm(BaseModel):
     async def set_filled(**kwargs) -> "GirlForm":
         tg_user = types.User.get_current()
         return await get_instance(GirlForm, 'post', path=f'girl_forms/{tg_user.id}/set_filled/', json={})
+
+    @staticmethod
+    async def update_additional_data_key(key, value):
+        gf = await GirlForm.get()
+        gf.additional_data[key] = value
+        await GirlForm.update(additional_data=gf.additional_data)
