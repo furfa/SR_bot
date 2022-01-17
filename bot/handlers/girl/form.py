@@ -610,6 +610,10 @@ class GirlForm(GirlFormBase):
         phone = phone.strip()
         if phone == "-":
             return True
+        if phone.startswith("8"):
+            phone = "+7" + phone[1:]
+        if not phone.startswith("+"):
+            phone = "+" + phone
         try:
             import phonenumbers
             from phonenumbers import carrier, timezone, geocoder
