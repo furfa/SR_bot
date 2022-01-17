@@ -47,7 +47,6 @@ class GirlFormSerializer(serializers.ModelSerializer):
             "status",
             "country",
             "city",
-            "nationality",
             "additional_data",
             "photos",
             "user",

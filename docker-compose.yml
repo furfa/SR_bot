@@ -47,6 +47,6 @@ services:
     volumes:
       - ./bot:/app
     environment:
-      BOT_TOKEN: "5062739090:AAEwkEtk3l0u2CeLmeDQaIxHRfk434_FpPA"
+      BOT_TOKEN: "5078360809:AAH2MRBW3eFgpEi7IUzasScwhReIK8Qa_bM"
       BACKEND_URL: "backend:8000"
     restart: always

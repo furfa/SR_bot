@@ -80,7 +80,6 @@ class GirlForm(DjangoModelAutoStr, models.Model):
     country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, related_name="countries", blank=True)
     city = models.ForeignKey(City, on_delete=models.SET_NULL, null=True, blank=True)
 
-    nationality = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, related_name="nationalities", blank=True)
     additional_data = models.JSONField(verbose_name="Дополнительные данные", default={}, blank=True)
     price = models.DecimalField(verbose_name="Стоимость", null=True, default=None, max_digits=17, decimal_places=10, blank=True)
 

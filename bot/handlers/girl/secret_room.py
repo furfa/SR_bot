@@ -26,7 +26,7 @@ async def display_girl_form(gf: GirlForm):
         text += "\n"
 
     if gf.city:
-        text += "<b>Страна:</b> "
+        text += "<b>Город:</b> "
         for city in city_list:
             if city["id"] == gf.city:
                 text += city["name"]
@@ -46,7 +46,8 @@ async def display_girl_form(gf: GirlForm):
         'whatsapp_number': "Номер whatsapp",
         'married_relations': "Отношения с женатыми",
         'work_phone_number': "Рабочий номер",
-        'sponsorship_relations': "Спонсорские отношения"
+        'sponsorship_relations': "Спонсорские отношения",
+        'nationality': "Национальность"
     }
     for k, v in gf.additional_data.items():
         if v is None:

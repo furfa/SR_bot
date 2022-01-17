@@ -28,7 +28,6 @@ class GirlForm(BaseModel):
     status: str
     country: Optional[int]
     city: Optional[int]
-    nationality: Optional[int]
     user: int
     additional_data: dict
     has_top_status: bool

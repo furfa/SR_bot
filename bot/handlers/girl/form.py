@@ -173,7 +173,7 @@ class GirlFormBase:
             if form_info_message := (await state.get_data()).get("form_info_message"):
                 await form_info_message.delete()
             await state.finish()
-            await query.message.answer("Выхожу из анкеты ❌")
+            await query.message.answer("Выхожу из анкеты ❌", disable_notification=True)
             return
 
         await self.send_question(query.message, state)
@@ -259,7 +259,7 @@ class GirlFormBase:
 
         if question_number == "EXIT":
             await state.finish()
-            await msg.answer("Анкета заполнена ✅")
+            await msg.answer("Анкета заполнена ✅", disable_notification=True)
             if self.need_approve:
                 await api.girl_form.GirlForm.set_filled()
             return
@@ -270,7 +270,7 @@ class GirlFormBase:
 
             info_text = await display_girl_form(await api.girl_form.GirlForm.get())
             if info_text:
-                data["form_info_message"] = await msg.answer(info_text)
+                data["form_info_message"] = await msg.answer(info_text, disable_notification=True)
             data["prev_question_message"] = await self.send_question_message(msg, state, question_number)
 
     async def send_question_message(self, msg: types.Message, state: FSMContext, question_number: str):
@@ -438,33 +438,32 @@ class GirlForm(GirlFormBase):
             "name": {
                 "type": "text_input",
                 "text": "Укажите, пожалуйста, вашe имя!",
-                "validators": lambda x: True,
+                "validators": lambda x: len(x) <= 64,
                 "processor": self.additional_data_factory("name"),
                 "next": "age",
                 "prev": "city"
             },
             "age": {
                 "type": "text_input",
-                "text": "Укажите, пожалуйста, ваш возраст!",
-                "validators": lambda x: re.fullmatch(r"\d+", x),
+                "text": "Укажите, пожалуйста, ваш возраст! \n\n <i>♦️ От 18 лет</i>",
+                "validators": lambda x: re.fullmatch(r"\d+", x) and 18 <= int(x) <= 100,
                 "processor": self.additional_data_factory("age"),
                 "next": "params",
                 "prev": "name"
             },
             "params": {
                 "type": "text_input",
-                "text": "Укажите, пожалуйста, ваши параметры!\n\n 90/60/90",
-                "validators": lambda x: re.fullmatch(r"\d+/\d+/\d+", x),
-                "processor": self.additional_data_factory("body_params"),
+                "text": "Укажите, пожалуйста, ваши параметры!\n\n<i>🔹 Например, 90/60/90</i>",
+                "validators": self.body_params_validator,
+                "processor": self.body_params_processor,
                 "next": "nationality",
                 "prev": "age"
             },
             "nationality": {
-                "type": "button_choices",
-                "choices": [country["name"] for country in self.country_list],
+                "type": "text_input",
                 "text": "Укажите, пожалуйста, вашу национальность!",
                 "validators": lambda x: True,
-                "processor": self.nationality_processor,
+                "processor": self.additional_data_factory("nationality"),
                 "next": "sponsorship_relations",
                 "prev": "params"
             },
@@ -479,7 +478,7 @@ class GirlForm(GirlFormBase):
             },
             "finance_support": {
                 "type": "text_input",
-                "text": "Какую финансовую поддержку вы хотели бы получать от мужчины в месяц в рублях?   (Пожалуйста, адекватно оценивайте свою внешность, от этого напрямую зависит сумма обеспечения девушки)",
+                "text": "Какую финансовую поддержку вы хотели бы получать от мужчины в месяц в рублях?  \n\n<i>🔹 Пожалуйста, адекватно оценивайте свою внешность, от этого напрямую зависит сумма обеспечения девушки</i>",
                 "validators": lambda x: re.fullmatch(r"\d+", x),
                 "processor": self.additional_data_factory("finance_support"),
                 "next": "married_relations",
@@ -528,7 +527,7 @@ class GirlForm(GirlFormBase):
             },
             "short_amount": {
                 "type": "text_input",
-                "text": "Какую сумму вы хотели бы получать за встречу 2-3 часа с адекватным мужчиной? (Укажите сумму в рублях)",
+                "text": "Какую сумму вы хотели бы получать за встречу 2-3 часа с адекватным мужчиной?\n\n<i>🔹 Укажите сумму в рублях</i>",
                 "validators": lambda x: re.fullmatch(r"\d+", x),
                 "processor": self.additional_data_factory("short_amount"),
                 "next": "about",
@@ -536,15 +535,15 @@ class GirlForm(GirlFormBase):
             },
             "about": {
                 "type": "text_input",
-                "text": "Расскажите немного о себе:\nОбразование, увлечения, хобби",
-                "validators": lambda x: True,
+                "text": "Расскажите немного о себе:\nОбразование, увлечения, хобби\n\n<i>🔹 Максимум 1000 символов</i>",
+                "validators": lambda x: len(x) <= 1000,
                 "processor": self.additional_data_factory("about"),
                 "next": "sex",
                 "prev": "short"
             },
             "sex": {
                 "type": "text_input",
-                "text": "Расскажите о своих предпочтениях в сексе, желаниях, запретах, часто мужчине это очень важно.\n Напишите минус(-) для пропуска.",
+                "text": "Расскажите о своих предпочтениях в сексе, желаниях, запретах, часто мужчине это очень важно.\n\n<i>🔹Напишите минус(-) для пропуска.</i>",
                 "validators": lambda x: True,
                 "processor": self.additional_data_factory("sex"),
                 "next": "work_phone_number",
@@ -553,7 +552,7 @@ class GirlForm(GirlFormBase):
             "work_phone_number": {
                 "type": "text_input",
                 "text": "Укажите ваш рабочий номер телефона",
-                "validators": lambda x: re.fullmatch(r"\+?\d+", x),
+                "validators": self.phone_number_validator,
                 "processor": self.additional_data_factory("work_phone_number"),
                 "next": "whatsapp_number",
                 "prev": "sex"
@@ -561,7 +560,7 @@ class GirlForm(GirlFormBase):
             "whatsapp_number": {
                 "type": "text_input",
                 "text": "Отправьте ваш номер whatsapp, или минус для пропуска",
-                "validators": lambda x: True,
+                "validators": self.phone_number_validator,
                 "processor": self.additional_data_factory("whatsapp_number"),
                 "next": "verification_photo",
                 "prev": "work_phone_number"
@@ -597,6 +596,29 @@ class GirlForm(GirlFormBase):
     async def empty(self, msg, choice):
         return None
 
+    def body_params_validator(self, params):
+        match = re.fullmatch(r"(\d+)[ \\/](\d+)[ \\/](\d+)", params)
+        return match
+
+    async def body_params_processor(self, msg, choise):
+        gf = await api.girl_form.GirlForm.get()
+        match = re.fullmatch(r"(\d+)[ \\/](\d+)[ \\/](\d+)", msg.text)
+        gf.additional_data["body_params"] = match.group(1) + "/" + match.group(2) + "/" + match.group(3)
+        await api.girl_form.GirlForm.update(additional_data=gf.additional_data)
+
+    def phone_number_validator(self, phone):
+        phone = phone.strip()
+        if phone == "-":
+            return True
+        try:
+            import phonenumbers
+            from phonenumbers import carrier, timezone, geocoder
+            from phonenumbers.phonenumberutil import number_type
+            return carrier._is_mobile(number_type(phonenumbers.parse(phone)))
+        except Exception as e:
+            logger.exception("phone number validation error")
+            return False
+
     async def country_processor(self, msg, choice):
         for i in self.country_list:
             if i["name"] == choice:
@@ -613,11 +635,6 @@ class GirlForm(GirlFormBase):
             gf.additional_data[key] = choice if choice is not None else msg.text
             await api.girl_form.GirlForm.update(additional_data=gf.additional_data)
         return inner
-
-    async def nationality_processor(self, msg, choice):
-        for i in self.country_list:
-            if i["name"] == choice:
-                await api.girl_form.GirlForm.update(nationality=i["id"])
 
     def photo_factory(self, **kwargs):
         async def inner(msg: types.Message, choice):
