@@ -1,9 +1,12 @@
 from aiogram import types
+from aiogram.dispatcher import FSMContext
 
+from handlers.utils import clean_message_decorator
 from utils.misc import rate_limit
 
 
-async def bot_help(msg: types.Message):
+@clean_message_decorator
+async def bot_help(msg: types.Message, state: FSMContext):
     text = [
         'Список команд: ',
         '/start - Начать диалог',

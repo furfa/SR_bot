@@ -10,6 +10,7 @@ class SexFilter(BoundFilter):
     def __init__(self, is_girl):
         self.is_girl = is_girl
 
+
     async def check(self, message: Message):
         be = await BackendUser.get(message.from_user)
         if be.sex == "UNKNOWN":

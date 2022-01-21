@@ -1,30 +1,35 @@
-from aiogram import types
+from aiogram import types, Bot
 from aiogram.dispatcher import FSMContext
 from loguru import logger
 from contextlib import suppress
 
 from api.user import UserSupportQuestion
+from handlers.chat_history import CHAT_HISTORY
+from handlers.utils import clean_message_decorator, get_history_logger_answer
 from keyboards.default import MainMenuKeyboard
 from keyboards.inline.support import SupportKeyboardInline
 from templates.user import support as templates
 from states.user.support import SupportStates
 
 
-async def support_start(msg: types.Message):
-    await msg.answer(templates.SUPPORT_START, reply_markup=SupportKeyboardInline.menu())
+@clean_message_decorator
+async def support_start(msg: types.Message, state: FSMContext):
+    await msg.answer(text=templates.SUPPORT_START, reply_markup=SupportKeyboardInline.menu())
 
 
-async def back_to_support(query: types.CallbackQuery, state: FSMContext):
+async def back_to_support(query: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await state.finish()
     await query.message.edit_text(templates.SUPPORT_START, reply_markup=SupportKeyboardInline.menu())
 
 
-async def partnership_support_info(query: types.CallbackQuery, state: FSMContext):
+async def partnership_support_info(query: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await query.message.edit_text(templates.PARTNERSHIP_SUPPORT_MESSAGE, reply_markup=SupportKeyboardInline.partner_support_menu())
 
 
-async def faq_info(query: types.CallbackQuery, state: FSMContext):
+async def faq_info(query: types.CallbackQuery, state: FSMContext, callback_data: dict):
     await query.message.delete() # Костыль, чтобы на айфоне кнопки не блокировались. В идеале делать edit text.
+
+    query.message.answer = get_history_logger_answer(query.message)
     await query.message.answer(templates.FAQ_MESSAGE, reply_markup=SupportKeyboardInline.faq_menu())
 
 
@@ -59,6 +64,8 @@ async def support_callback_handler(query: types.CallbackQuery, state: FSMContext
     if support_type == "client_support":
         await SupportStates.client.set()
         text = templates.CLIENT_SUPPORT_QUESTION
+
+    msg.answer = get_history_logger_answer(msg)
 
     question_message = await msg.answer(
         text,
@@ -95,4 +102,5 @@ async def question_handler(msg: types.Message, state: FSMContext = None):
     if state:
         await state.finish()
 
-    await msg.answer(templates.THANKS_FOR_ANSWER.format(question=msg.text), reply_markup=MainMenuKeyboard.main_menu())
+    msg.answer = get_history_logger_answer(msg)
+    await msg.answer(templates.THANKS_FOR_ANSWER.format(question=msg.text))

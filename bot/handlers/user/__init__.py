@@ -16,8 +16,7 @@ def setup(dp: Dispatcher):
     dp.register_message_handler(start.bot_start, CommandStart(), state='*')
     dp.register_message_handler(start.bot_start, text=[BACK_BUTTON], state='*')
 
-    dp.register_message_handler(start.selected_male, text=['Мужчина'], state=states.user.start.MainMenuStates.select_sex)
-    dp.register_message_handler(start.selected_girl, text=['Девушка'], state=states.user.start.MainMenuStates.select_sex)
+    dp.register_message_handler(start.selected_sex, state=states.user.start.MainMenuStates.select_sex)
 
     # support.py
     dp.register_message_handler(support.support_start, text=['📤 Связь'])
@@ -65,3 +64,6 @@ def setup(dp: Dispatcher):
     dp.register_message_handler(account.screenshot_payment_get_screenshot,
                                 content_types=['text', 'photo', 'video'],
                                 state=states.user.account.AccountStates.wait_screenshot)
+
+    # Handler for another bullshit
+    dp.register_message_handler(start.delete_non_state_messages)

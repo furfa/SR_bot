@@ -7,8 +7,8 @@ class MainMenuKeyboard(DefaultConstructor):
     def select_sex():
         schema = [2]
         actions = [
-            'Мужчина',
-            'Девушка',
+            '👨🏽 Мужчина',
+            '👩🏽 Девушка',
         ]
         return MainMenuKeyboard._create_kb(actions, schema)
 

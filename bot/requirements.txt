@@ -4,4 +4,5 @@ loguru
 pydantic
 phonenumbers
 pyyaml
+apscheduler
 watchdog==2.1.6

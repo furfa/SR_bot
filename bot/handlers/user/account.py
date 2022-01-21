@@ -1,3 +1,4 @@
+import asyncio
 import re
 from io import BytesIO
 
@@ -6,12 +7,14 @@ from aiogram.dispatcher import FSMContext
 
 from api.payment import Payment
 from api.user import BackendUser
+from handlers.utils import clean_message_decorator
 from keyboards.inline.account import AccountInline
 from states.user.account import AccountStates
 from templates.user.account import ACCOUNT_MENU, TOP_UP_BALANCE, TOP_UP_CUSTOM_AMOUNT, TOP_UP_CUSTOM_AMOUNT_WRONG
 
 
-async def account_menu(msg: types.Message):
+@clean_message_decorator
+async def account_menu(msg: types.Message, state: FSMContext):
     backend_user = await BackendUser.get()
     await msg.answer(
         ACCOUNT_MENU.format(
@@ -20,7 +23,7 @@ async def account_menu(msg: types.Message):
     )
 
 
-async def account_menu_query(query: types.CallbackQuery, state: FSMContext):
+async def account_menu_query(query: types.CallbackQuery, state: FSMContext, callback_data: dict):
     backend_user = await BackendUser.get()
     await query.message.edit_text(
         ACCOUNT_MENU.format(
@@ -30,7 +33,7 @@ async def account_menu_query(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
 
 
-async def top_up_balance_menu(query: types.CallbackQuery, state: FSMContext):
+async def top_up_balance_menu(query: types.CallbackQuery, state: FSMContext, callback_data: dict):
     backend_user = await BackendUser.get()
     await query.message.edit_text(
         TOP_UP_BALANCE.format(
@@ -50,7 +53,7 @@ async def top_up_selected_amount(query: types.CallbackQuery, state: FSMContext, 
         async with state.proxy() as data:
             data["question_message"] = query.message
         return
-    await query.message.edit_text(query.message.text)
+    await query.message.delete()
     await send_select_payment(int(callback_data["amount"]))
 
 
@@ -102,9 +105,14 @@ async def screenshot_payment_get_screenshot(msg: types.Message, state: FSMContex
         b.write(downloaded.getvalue())
         b.seek(0)
         await Payment.create(screenshot=b, amount=data.get("screenshot_amount", 0))
-        await bot.send_message(msg.chat.id, "Принято 👌. Ожидайте подтверждения от администраторов")
-
+        await msg.delete()
         if screenshot_ask_message := data.get("screenshot_ask_message"):
-            await screenshot_ask_message.edit_text(screenshot_ask_message.text)
+            await screenshot_ask_message.delete()
+
+        message = await bot.send_message(msg.chat.id, "Принято 👌. Ожидайте подтверждения от администраторов")
+        await asyncio.sleep(4)
+        await message.delete()
+
+
 
     await state.finish()

@@ -3,6 +3,7 @@ from aiogram.dispatcher import FSMContext
 
 from api.base import request
 from api.girl_form import GirlForm
+from handlers.utils import clean_message_decorator
 from keyboards.inline.girl_secret_room import SrMenuInline
 from templates.girl.secret_room import WELCOME_MESSAGE, CREATE_FORM, FORM_ON_MODERATION, FORM_CONFIRMED, FORM_REJECTED
 
@@ -32,41 +33,40 @@ async def display_girl_form(gf: GirlForm):
                 text += city["name"]
         text += "\n"
 
-    normal_names = {
-        'age': "Возраст",
-        'sex': "Сексуальные предпочтения",
-        'name': "Имя",
-        'about': "О себе",
-        'short': "Короткие свидания",
-        'abroad': "Поездки за границу",
-        'documents': "Документы",
-        'body_params': "Параметры тела",
-        'short_amount': "Прайс за короткие свидания",
-        'finance_support': "Финансовая поддержка",
-        'whatsapp_number': "Номер whatsapp",
-        'married_relations': "Отношения с женатыми",
-        'work_phone_number': "Рабочий номер",
-        'sponsorship_relations': "Спонсорские отношения",
-        'nationality': "Национальность"
-    }
-    for k, v in gf.additional_data.items():
+    normal_names = [
+        ('NameQuestion', "Имя"),
+        ('AgeQuestion', "Возраст"),
+        ('BodyParamsQuestion', "Параметры тела"),
+        ('NationalityQuestion', "Национальность"),
+        ('PurposeQuestion', "Цели в боте"),
+        ('LongFinanceQuestion', "Прайс в месяц"),
+        ('ShortFinanceQuestion', "Прайс за 2-3 часа"),
+        ('DocumentsQuestion', "Документы"),
+        ('MarriedRelationsQuestion', "Отношения с женатыми"),
+        ('AboutQuestion', "О себе"),
+        ('SexQuestion', "Сексуальные предпочтения"),
+        ('WorkPhoneQuestion', "Рабочий номер"),
+        ('WhatsappNumberQuestion', "Номер whatsapp"),
+    ]
+    for normal_key, normal_name in normal_names:
+        v = gf.additional_data.get(normal_key)
         if v is None:
             continue
-        if not normal_names.get(k):
-            continue
-        proc_k = normal_names[k]
+        proc_k = normal_name
         proc_v = ""
         if type(v) == bool:
             proc_v = "Да" if v else "Нет"
         elif type(v) == list:
-            proc_v = ", ".join(v)
+            proc_v = "\n  ♦️".join([""]+v)
         else:
             proc_v = v
         text += f"<b>{proc_k}</b>: {proc_v}\n"
+
     return text
 
 
-async def welcome(msg: types.Message):
+@clean_message_decorator
+async def welcome(msg: types.Message, state: FSMContext):
     await msg.answer(WELCOME_MESSAGE, reply_markup=SrMenuInline.menu())
 
 

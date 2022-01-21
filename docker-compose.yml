@@ -28,7 +28,7 @@ services:
       CELERY_BACKEND : redis://redis:6379/0
     #command: gunicorn --bind 0.0.0.0:8000 config.wsgi
     command: >
-      bash -c "bash -c 'python manage.py migrate'; bash -c 'DJANGO_SUPERUSER_PASSWORD=1 ./manage.py createsuperuser --noinput --username admin1 --email a@gmail.com'; python manage.py runserver 0.0.0.0:8000"
+      bash -c "bash -c 'python manage.py migrate'; bash -c 'python loaddata  location_dump.json'; bash -c 'DJANGO_SUPERUSER_PASSWORD=1 ./manage.py createsuperuser --noinput --username admin1 --email a@gmail.com'; python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
     restart: always
@@ -41,7 +41,7 @@ services:
 
   bot:
     build: ./bot
-    command: bash -c "sleep 10 && watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- python app.py"
+    command: bash -c "watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- python app.py"
     depends_on:
       - backend
     volumes:

@@ -1,15 +1,18 @@
-from aiogram import types
+from aiogram import types, Bot
 from aiogram.dispatcher import FSMContext
 from loguru import logger
 from contextlib import suppress
 
+from handlers.utils import clean_message_decorator, send_error_message
 from keyboards.default import MainMenuKeyboard
 from states.user.start import MainMenuStates
 from templates.user.start import WELCOME_MESSAGE_NEW_USER, WELCOME_MESSAGE_MALE, WELCOME_MESSAGE_GIRL
 from api.user import BackendUser
 
 
+@clean_message_decorator
 async def bot_start(msg: types.Message, state: FSMContext = None):
+    bot = Bot.get_current()
     if state:
         await state.finish()
 
@@ -29,19 +32,30 @@ async def bot_start(msg: types.Message, state: FSMContext = None):
         return
 
     if user.sex == 'MALE':
-        await msg.answer(WELCOME_MESSAGE_MALE, reply_markup=MainMenuKeyboard.main_menu())
+        await bot.send_message(msg.chat.id, "Добро пожаловать в бота", reply_markup=MainMenuKeyboard.main_menu())
+        await msg.answer(WELCOME_MESSAGE_MALE)
         return
 
-    await msg.answer(WELCOME_MESSAGE_GIRL, reply_markup=MainMenuKeyboard.main_menu())
+    await msg.bot.send_message(msg.chat.id, "Добро пожаловать в бота", reply_markup=MainMenuKeyboard.main_menu())
+    await msg.answer(WELCOME_MESSAGE_GIRL)
 
 
-async def selected_male(msg: types.Message, state: FSMContext = None):
-    await BackendUser.update(sex="MALE")
+async def selected_sex(msg: types.Message, state: FSMContext = None):
+    if msg.text == '👩🏽 Девушка':
+        sex = "GIRL"
+    elif msg.text == '👨🏽 Мужчина':
+        sex = "MALE"
+    else:
+        await send_error_message("❗️ Нажмите кнопку на клавиатуре", msg=msg)
+        return
+
+    await BackendUser.update(sex=sex)
     await state.finish()
-    await bot_start(msg)
+
+    await msg.delete()
+
+    await bot_start(msg, state)
 
 
-async def selected_girl(msg: types.Message, state: FSMContext = None):
-    await BackendUser.update(sex="GIRL")
-    await state.finish()
-    await bot_start(msg)
+async def delete_non_state_messages(msg: types.Message, state: FSMContext = None):
+    await send_error_message("❗️ Выберите опцию на клавиатуре", msg=msg)
