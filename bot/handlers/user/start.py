@@ -1,9 +1,10 @@
 from aiogram import types, Bot
 from aiogram.dispatcher import FSMContext
 from loguru import logger
-from contextlib import suppress
 
-from handlers.utils import clean_message_decorator, send_error_message
+from base.aiogram_utils import memorize_answer
+from base.cleaning import clean_message_decorator
+from base.error_message import send_error_message
 from keyboards.default import MainMenuKeyboard
 from states.user.start import MainMenuStates
 from templates.user.start import WELCOME_MESSAGE_NEW_USER, WELCOME_MESSAGE_MALE, WELCOME_MESSAGE_GIRL
@@ -27,17 +28,17 @@ async def bot_start(msg: types.Message, state: FSMContext = None):
     logger.info(f"{user=}")
 
     if user.sex == 'UNKNOWN':
-        await msg.answer(WELCOME_MESSAGE_NEW_USER, reply_markup=MainMenuKeyboard.select_sex())
+        await memorize_answer(msg, WELCOME_MESSAGE_NEW_USER, reply_markup=MainMenuKeyboard.select_sex())
         await MainMenuStates.select_sex.set()
         return
 
     if user.sex == 'MALE':
         await bot.send_message(msg.chat.id, "Добро пожаловать в бота", reply_markup=MainMenuKeyboard.main_menu())
-        await msg.answer(WELCOME_MESSAGE_MALE)
+        await memorize_answer(msg, WELCOME_MESSAGE_MALE)
         return
 
     await msg.bot.send_message(msg.chat.id, "Добро пожаловать в бота", reply_markup=MainMenuKeyboard.main_menu())
-    await msg.answer(WELCOME_MESSAGE_GIRL)
+    await memorize_answer(msg, WELCOME_MESSAGE_GIRL)
 
 
 async def selected_sex(msg: types.Message, state: FSMContext = None):

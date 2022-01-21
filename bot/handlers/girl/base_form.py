@@ -7,6 +7,7 @@ from aiogram.utils.callback_data import CallbackData
 from loguru import logger
 
 import api.girl_form
+from base.aiogram_utils import memorize_answer
 from handlers.girl.base_questions import QuestionTree
 
 from handlers.girl.secret_room import display_girl_form
@@ -254,7 +255,7 @@ class GirlFormBase:
         async with state.proxy() as data:
             if question_number == "EXIT":
                 await state.finish()
-                await msg.answer("Анкета заполнена ✅", disable_notification=True)
+                await memorize_answer(msg, "Анкета заполнена ✅", disable_notification=True)
                 form_info_message = data.get("form_info_message")
                 if form_info_message:
                     await form_info_message.delete()

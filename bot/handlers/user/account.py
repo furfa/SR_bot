@@ -7,7 +7,8 @@ from aiogram.dispatcher import FSMContext
 
 from api.payment import Payment
 from api.user import BackendUser
-from handlers.utils import clean_message_decorator
+from base.aiogram_utils import memorize_answer, memorize_send_message
+from base.cleaning import clean_message_decorator
 from keyboards.inline.account import AccountInline
 from states.user.account import AccountStates
 from templates.user.account import ACCOUNT_MENU, TOP_UP_BALANCE, TOP_UP_CUSTOM_AMOUNT, TOP_UP_CUSTOM_AMOUNT_WRONG
@@ -16,7 +17,7 @@ from templates.user.account import ACCOUNT_MENU, TOP_UP_BALANCE, TOP_UP_CUSTOM_A
 @clean_message_decorator
 async def account_menu(msg: types.Message, state: FSMContext):
     backend_user = await BackendUser.get()
-    await msg.answer(
+    await memorize_answer(msg,
         ACCOUNT_MENU.format(
             user_id=backend_user.id, balance=int(backend_user.balance), status=("админ" if backend_user.is_admin else "пользователь")
         ), reply_markup=AccountInline.menu()
@@ -59,13 +60,14 @@ async def top_up_selected_amount(query: types.CallbackQuery, state: FSMContext, 
 
 async def top_up_custom_amount(msg: types.Message, state: FSMContext):
     async with state.proxy() as data:
+        await msg.delete()
+
         if not re.fullmatch(r"\d+", msg.text):
-            await msg.delete()
-            await msg.answer(TOP_UP_CUSTOM_AMOUNT_WRONG)
+            await memorize_answer(msg, TOP_UP_CUSTOM_AMOUNT_WRONG)
             return
 
         if question_message := data.get("question_message"):
-            await question_message.edit_text(TOP_UP_CUSTOM_AMOUNT)
+            await question_message.delete()
 
         await state.finish()
         await send_select_payment(int(msg.text))
@@ -74,7 +76,7 @@ async def top_up_custom_amount(msg: types.Message, state: FSMContext):
 async def send_select_payment(amount):
     user = types.User.get_current()
     bot = Bot.get_current()
-    await bot.send_message(
+    await memorize_send_message(bot,
         user.id,
         "<b>Выбрана сумма</b>:\n{} SRC 🪙\n\n Выберите тип оплаты 👇".format(amount),
         reply_markup=AccountInline.payment_menu(amount)
@@ -98,7 +100,7 @@ async def screenshot_payment_get_screenshot(msg: types.Message, state: FSMContex
     async with state.proxy() as data:
         bot = Bot.get_current()
         if not msg.photo:
-            await msg.answer("Нужно отправить картинку 😡")
+            await memorize_answer(msg, "Нужно отправить картинку 😡")
             return
         downloaded = await bot.download_file_by_id(msg.photo[-1].file_id)
         b = BytesIO()
@@ -109,10 +111,8 @@ async def screenshot_payment_get_screenshot(msg: types.Message, state: FSMContex
         if screenshot_ask_message := data.get("screenshot_ask_message"):
             await screenshot_ask_message.delete()
 
-        message = await bot.send_message(msg.chat.id, "Принято 👌. Ожидайте подтверждения от администраторов")
+        message = await memorize_send_message(bot, msg.chat.id, "Принято 👌. Ожидайте подтверждения от администраторов")
         await asyncio.sleep(4)
         await message.delete()
-
-
 
     await state.finish()
