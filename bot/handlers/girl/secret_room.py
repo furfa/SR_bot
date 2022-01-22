@@ -82,7 +82,7 @@ async def form_menu(query: types.CallbackQuery, state: FSMContext, callback_data
         await memorize_answer(query.message, CREATE_FORM, reply_markup=SrMenuInline.ask_to_create_form())
         return
     if gf.status == "CREATED":
-        await memorize_answer( query.message, reply_markup=SrMenuInline.ask_to_create_form())
+        await memorize_answer(query.message, CREATE_FORM, reply_markup=SrMenuInline.ask_to_create_form())
         return
     if gf.status == "FILLED":
         await memorize_answer(query.message, FORM_ON_MODERATION, reply_markup=SrMenuInline.only_back())

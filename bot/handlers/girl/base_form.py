@@ -255,7 +255,8 @@ class GirlFormBase:
         async with state.proxy() as data:
             if question_number == "EXIT":
                 await state.finish()
-                await memorize_answer(msg, "Анкета заполнена ✅", disable_notification=True)
+                info_text = await display_girl_form(await api.girl_form.GirlForm.get())
+                await memorize_answer(msg, f"{info_text}\nАнкета заполнена ✅", disable_notification=True)
                 form_info_message = data.get("form_info_message")
                 if form_info_message:
                     await form_info_message.delete()

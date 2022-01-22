@@ -1,5 +1,6 @@
 import asyncio
 
+import aiogram.utils.exceptions
 from aiogram import types, Bot
 from aiogram.dispatcher import FSMContext
 from loguru import logger
@@ -21,7 +22,11 @@ async def clean_history():
 
 def clean_message_decorator(func):
     async def inner(msg: types.Message, state: FSMContext):
-        await msg.delete()
+        try:
+            await msg.delete()
+        except aiogram.utils.exceptions.MessageToDeleteNotFound:
+            pass
+
         await clean_history()
         return await func(msg, state)
 
