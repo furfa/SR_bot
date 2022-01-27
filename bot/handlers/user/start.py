@@ -41,6 +41,7 @@ async def bot_start(msg: types.Message, state: FSMContext = None):
     await memorize_answer(msg, WELCOME_MESSAGE_GIRL)
 
 
+@clean_message_decorator
 async def selected_sex(msg: types.Message, state: FSMContext = None):
     if msg.text == '👩🏽 Девушка':
         sex = "GIRL"
@@ -50,11 +51,8 @@ async def selected_sex(msg: types.Message, state: FSMContext = None):
         await send_error_message("❗️ Нажмите кнопку на клавиатуре", msg=msg)
         return
 
-    await BackendUser.update(sex=sex)
     await state.finish()
-
-    await msg.delete()
-
+    await BackendUser.update(sex=sex)
     await bot_start(msg, state)
 
 

@@ -132,6 +132,7 @@ class PurposeQuestion(MulticheckboxQuestion):
 
 
 class AbstractFinanceQuestion(TextQuestion):
+
     async def get_currency(self):
         state = Dispatcher.get_current().current_state()
         async with state.proxy() as data:
